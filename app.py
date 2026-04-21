@@ -152,10 +152,11 @@ WALLET_TEMPLATE = """
         body { background-color: #0F172A; color: white; -webkit-tap-highlight-color: transparent; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; }
         .safe-area-top { padding-top: env(safe-area-inset-top); }
         .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .tab-content { display: none; }
         .tab-content.active { display: flex; flex-direction: column; }
-        .coin-card:active { transform: scale(0.98); background: rgba(51, 65, 85, 0.5); }
+        .coin-card { transition: all 0.2s; }
+        .coin-card:active { transform: scale(0.96); background: rgba(30, 41, 59, 0.8); }
         .btn-active { color: #38BDF8; }
         ::-webkit-scrollbar { display: none; }
     </style>
@@ -185,53 +186,64 @@ WALLET_TEMPLATE = """
         </div>
     </div>
 
-    <!-- Main Content Area -->
-    <div id="walletTab" class="tab-content active flex-1 overflow-y-auto px-6 pb-24">
+    <div id="walletTab" class="tab-content active flex-1 overflow-y-auto px-6 pb-32">
         <!-- Balance Card -->
-        <div class="mt-4 p-8 rounded-[32px] bg-gradient-to-br from-sky-500 to-blue-700 shadow-2xl shadow-blue-500/30 relative overflow-hidden">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-            <p class="text-sky-100 text-sm opacity-80">Total Balance</p>
-            <h2 id="totalBalance" class="text-4xl font-bold mt-1">$0.00</h2>
-            <div class="flex items-center gap-2 mt-3 text-sky-100 text-xs">
-                <span class="bg-white/20 px-2 py-0.5 rounded-full font-bold">+5.24%</span>
-                <span class="opacity-80">last 24 hours</span>
+        <div class="mt-4 p-8 rounded-[40px] bg-gradient-to-br from-blue-600 to-indigo-800 shadow-2xl shadow-blue-500/20 relative overflow-hidden min-h-[180px] flex flex-col justify-center">
+            <div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+            <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl"></div>
+            
+            <p class="text-blue-100/70 text-xs font-bold uppercase tracking-widest mb-1">Total Balance</p>
+            <div class="flex items-baseline gap-2">
+                <h2 id="totalBalance" class="text-4xl font-bold text-white tracking-tight">$0.00</h2>
+                <i class="fas fa-eye text-blue-200/40 text-xs cursor-pointer hover:text-white transition-colors"></i>
             </div>
             
-            <div class="flex justify-between mt-10">
-                <button onclick="showModal('sendModal')" class="flex flex-col items-center gap-2 group">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
-                        <i class="fas fa-arrow-up text-lg rotate-45"></i>
-                    </div>
-                    <span class="text-xs font-bold">Send</span>
-                </button>
-                <button onclick="showModal('receiveModal')" class="flex flex-col items-center gap-2 group">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
-                        <i class="fas fa-arrow-down text-lg -rotate-45"></i>
-                    </div>
-                    <span class="text-xs font-bold">Receive</span>
-                </button>
-                <button class="flex flex-col items-center gap-2 group opacity-50">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-                        <i class="fas fa-repeat text-lg"></i>
-                    </div>
-                    <span class="text-xs font-bold">Swap</span>
-                </button>
-                <button class="flex flex-col items-center gap-2 group opacity-50">
-                    <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-                        <i class="fas fa-plus text-lg"></i>
-                    </div>
-                    <span class="text-xs font-bold">Buy</span>
-                </button>
+            <div class="flex items-center gap-2 mt-5">
+                <div class="flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-1 rounded-lg text-[10px] font-black">
+                    <i class="fas fa-caret-up"></i>
+                    <span>5.24%</span>
+                </div>
+                <span class="text-blue-100/40 text-[10px] font-bold uppercase tracking-tighter">Profit today</span>
             </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-4 gap-4 mt-8">
+            <button onclick="showModal('sendModal')" class="flex flex-col items-center gap-2 group">
+                <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-blue-400 shadow-lg group-active:scale-90 transition-all border border-white/5">
+                    <i class="fas fa-arrow-up-from-bracket text-lg"></i>
+                </div>
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Send</span>
+            </button>
+            <button onclick="showModal('receiveModal')" class="flex flex-col items-center gap-2 group">
+                <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-emerald-400 shadow-lg group-active:scale-90 transition-all border border-white/5">
+                    <i class="fas fa-qrcode text-lg"></i>
+                </div>
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Receive</span>
+            </button>
+            <button class="flex flex-col items-center gap-2 group opacity-50">
+                <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-amber-400 shadow-lg border border-white/5">
+                    <i class="fas fa-repeat text-lg"></i>
+                </div>
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Swap</span>
+            </button>
+            <button class="flex flex-col items-center gap-2 group opacity-50">
+                <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-violet-400 shadow-lg border border-white/5">
+                    <i class="fas fa-plus text-lg"></i>
+                </div>
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Buy</span>
+            </button>
         </div>
 
         <!-- Asset List -->
         <div class="mt-10">
-            <div class="flex justify-between items-center mb-5">
-                <h3 class="text-lg font-bold">Your Assets</h3>
-                <i class="fas fa-sliders text-sky-400"></i>
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-black tracking-tight">Your Assets</h3>
+                <button class="w-8 h-8 rounded-lg glass flex items-center justify-center text-slate-400">
+                    <i class="fas fa-sliders text-xs"></i>
+                </button>
             </div>
-            <div id="assetContainer" class="space-y-4">
+            <div id="assetContainer" class="space-y-3">
                 <!-- Assets injected by JS -->
             </div>
         </div>
@@ -473,67 +485,86 @@ WALLET_TEMPLATE = """
         let html5QrCode;
 
         function updateUI() {
-            // Header
-            const shortAddr = walletState.address.slice(0, 6) + "..." + walletState.address.slice(-4);
-            document.getElementById('headerAddress').innerText = shortAddr;
-            document.getElementById('fullAddr').innerText = walletState.address;
-            document.getElementById('qrCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletState.address}`;
-            
-            // Assets & Balance
-            let total = 0;
-            const container = document.getElementById('assetContainer');
-            container.innerHTML = '';
-            
-            walletState.assets.forEach(asset => {
-                const val = asset.balance * (walletState.prices[asset.sym] || 0);
-                total += val;
+            try {
+                // Header
+                const shortAddr = walletState.address.slice(0, 6) + "..." + walletState.address.slice(-4);
+                const headerAddr = document.getElementById('headerAddress');
+                const fullAddr = document.getElementById('fullAddr');
+                const qrCode = document.getElementById('qrCode');
                 
-                container.innerHTML += `
-                    <div class="coin-card p-5 rounded-[28px] glass flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background: ${asset.color}20">
-                                <i class="${asset.icon}" style="color: ${asset.color}"></i>
+                if (headerAddr) headerAddr.innerText = shortAddr;
+                if (fullAddr) fullAddr.innerText = walletState.address;
+                if (qrCode) qrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${walletState.address}`;
+                
+                // Assets & Balance
+                let total = 0;
+                const container = document.getElementById('assetContainer');
+                if (container) {
+                    container.innerHTML = '';
+                    walletState.assets.forEach(asset => {
+                        const price = walletState.prices[asset.sym] || 0;
+                        const val = asset.balance * price;
+                        total += val;
+                        
+                        container.innerHTML += `
+                            <div class="coin-card p-5 rounded-[32px] glass flex justify-between items-center">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background: ${asset.color}15">
+                                        <i class="${asset.icon}" style="color: ${asset.color}"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-sm text-white">${asset.name}</p>
+                                        <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest">${asset.sym}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-bold text-sm text-white">${asset.balance.toLocaleString(undefined, {minimumFractionDigits: asset.sym === 'USDT' ? 2 : 4})}</p>
+                                    <p class="text-[10px] text-slate-500 font-bold tracking-tight">$${val.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p class="font-bold text-sm">${asset.name}</p>
-                                <p class="text-[10px] text-slate-500 font-bold">${asset.sym}</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-bold text-sm">${asset.balance.toLocaleString(undefined, {minimumFractionDigits: asset.sym === 'USDT' ? 2 : 4})}</p>
-                            <p class="text-[10px] text-slate-500 font-bold">$${val.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-                        </div>
-                    </div>
-                `;
-            });
+                        `;
+                    });
+                }
 
-            document.getElementById('totalBalance').innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('sendBalanceText').innerText = `Available: ${walletState.assets[0].balance.toLocaleString()} USDT`;
-            
-            // History
-            const histContainer = document.getElementById('historyContainer');
-            histContainer.innerHTML = '';
-            walletState.history.slice().reverse().forEach(h => {
-                const isSent = h.type === 'Sent';
-                histContainer.innerHTML += `
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full glass flex items-center justify-center">
-                                <i class="fas ${isSent ? 'fa-arrow-up text-red-400' : 'fa-arrow-down text-green-400'} text-[10px]"></i>
+                const totalEl = document.getElementById('totalBalance');
+                if (totalEl) {
+                    totalEl.innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                }
+                
+                const sendBalText = document.getElementById('sendBalanceText');
+                if (sendBalText) {
+                    sendBalText.innerText = `Available: ${walletState.assets[0].balance.toLocaleString()} USDT`;
+                }
+                
+                // History
+                const histContainer = document.getElementById('historyContainer');
+                if (histContainer) {
+                    histContainer.innerHTML = '';
+                    walletState.history.slice().reverse().forEach(h => {
+                        const isSent = h.type === 'Sent';
+                        histContainer.innerHTML += `
+                            <div class="flex items-center justify-between py-1">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-full glass flex items-center justify-center border border-white/5">
+                                        <i class="fas ${isSent ? 'fa-arrow-up text-red-400' : 'fa-arrow-down text-emerald-400'} text-[10px]"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-white">${h.type} ${h.sym}</p>
+                                        <p class="text-[10px] text-slate-500 font-medium">${h.date} • ${h.net || 'Network'}</p>
+                                    </div>
+                                </div>
+                                <p class="text-xs font-black ${isSent ? 'text-white' : 'text-emerald-400'}">${isSent ? '-' : '+'}$${h.amount.toLocaleString()}</p>
                             </div>
-                            <div>
-                                <p class="text-xs font-bold">${h.type} ${h.sym}</p>
-                                <p class="text-[10px] text-slate-600 font-medium">${h.date} • ${h.net || 'Network'}</p>
-                            </div>
-                        </div>
-                        <p class="text-xs font-bold ${isSent ? '' : 'text-green-400'}">${isSent ? '-' : '+'}$${h.amount.toLocaleString()}</p>
-                    </div>
-                `;
-            });
+                        `;
+                    });
+                }
 
-            localStorage.setItem('wallet_assets', JSON.stringify(walletState.assets));
-            localStorage.setItem('wallet_history', JSON.stringify(walletState.history));
-            localStorage.setItem('wallet_addr', walletState.address);
+                localStorage.setItem('wallet_assets', JSON.stringify(walletState.assets));
+                localStorage.setItem('wallet_history', JSON.stringify(walletState.history));
+                localStorage.setItem('wallet_addr', walletState.address);
+            } catch (err) {
+                console.error("UI Update Error:", err);
+            }
         }
 
         async function fetchPrices() {
