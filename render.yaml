@@ -3,9 +3,9 @@ services:
     name: nexus-wallet
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn -b 0.0.0.0:$PORT app:app
     envVars:
       - key: RENDER
         value: "true"
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.10.12
