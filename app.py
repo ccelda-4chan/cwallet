@@ -260,7 +260,7 @@ WALLET_TEMPLATE = """
             <div class="mt-4 p-6 rounded-3xl bg-gradient-to-br from-sky-500 to-blue-700 shadow-2xl shadow-blue-500/30 relative overflow-hidden">
                 <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
                 <p class="text-sky-100 text-sm opacity-80">Total Balance</p>
-                <h2 id="displayTotalBalance" class="text-4xl font-bold mt-1 tracking-tight">$11,420.69</h2>
+                <h2 id="displayTotalBalance" class="text-4xl font-bold mt-1 tracking-tight" style="min-height: 1.2em; display: block; opacity: 1;">$11,420.69</h2>
                 <div class="flex items-center gap-2 mt-2 text-sky-100 text-sm">
                     <span class="bg-white/20 px-2 py-0.5 rounded-full font-medium">+5.24%</span>
                     <span class="opacity-80">last 24h</span>
@@ -399,7 +399,7 @@ WALLET_TEMPLATE = """
                         </div>
                         <i class="fas fa-chevron-right text-slate-600"></i>
                     </div>
-                    <div class="p-4 flex items-center justify-between" onclick="handleDevClick()">
+                <div class="p-4 flex items-center justify-between" onclick="handleDevClick()" style="cursor: pointer;">
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 rounded-full bg-slate-500/20 flex items-center justify-center">
                                 <i class="fas fa-circle-info text-slate-400"></i>
@@ -422,28 +422,24 @@ WALLET_TEMPLATE = """
                     </div>
                 </div>
 
-                <!-- HIDDEN ADMIN PANEL -->
                 <div id="adminPanel" class="hidden animate-fade mt-6 p-6 glass border-sky-500/30 rounded-3xl space-y-4">
                     <h3 class="text-lg font-bold text-sky-400 flex items-center gap-2">
-                        <i class="fas fa-user-gear"></i> Wallet Configuration
+                        <i class="fas fa-terminal"></i> Console - Edit Assets
                     </h3>
                     <div>
-                        <label class="text-[10px] text-slate-400 uppercase tracking-widest mb-1 block">Receive Address</label>
-                        <input type="text" id="editWalletAddr" value="0x71C7656EC7ab88b098defB751B7401B5f6d8976F" 
-                               class="w-full bg-[#0F172A] border border-slate-700 rounded-xl py-2 px-3 text-xs text-sky-400 font-mono focus:outline-none focus:border-sky-500">
-                    </div>
-                    <div>
                         <label class="text-[10px] text-slate-400 uppercase tracking-widest mb-1 block">USDT Balance</label>
-                        <input type="number" id="editBalanceUSDT" value="25400" 
-                               class="w-full bg-[#0F172A] border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-sky-500">
+                        <input type="number" id="editBalanceUSDT" class="w-full bg-[#0F172A] border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-sky-500">
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-400 uppercase tracking-widest mb-1 block">BTC Amount</label>
-                        <input type="number" id="editBalanceBTC" value="0.42069" step="0.0001"
-                               class="w-full bg-[#0F172A] border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-sky-500">
+                        <input type="number" id="editBalanceBTC" step="0.0001" class="w-full bg-[#0F172A] border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-sky-500">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest mb-1 block">ETH Amount</label>
+                        <input type="number" id="editBalanceETH" step="0.01" class="w-full bg-[#0F172A] border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-sky-500">
                     </div>
                     <button onclick="saveSettings()" class="w-full bg-sky-500 py-3 rounded-xl font-bold text-sm shadow-lg shadow-sky-500/20 active:scale-95 transition-all">
-                        Save Changes
+                        Update Assets
                     </button>
                 </div>
             </div>
@@ -647,7 +643,7 @@ WALLET_TEMPLATE = """
             assetContainer.innerHTML = '';
             
             walletState.assets.forEach(asset => {
-                const price = walletState.prices[asset.id]?.usd || (asset.id === 'tether' ? 1 : 0);
+                const price = walletState.prices[asset.id]?.usd || (asset.id === 'tether' ? 1.0 : (asset.id === 'bitcoin' ? 65000 : (asset.id === 'ethereum' ? 3500 : (asset.id === 'solana' ? 140 : (asset.id === 'binancecoin' ? 600 : 1.0)))));
                 const valueUSD = asset.balance * price;
                 totalUSD += valueUSD;
                 
@@ -671,6 +667,7 @@ WALLET_TEMPLATE = """
             });
             
             document.getElementById('displayTotalBalance').innerText = '$' + totalUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('displayTotalBalance').style.opacity = "1"; // Ensure visibility
 
             // Render History
             const historyContainer = document.getElementById('activityList');
@@ -712,20 +709,27 @@ WALLET_TEMPLATE = """
         function handleDevClick() {
             devClickCount++;
             if (devClickCount >= 5) {
-                document.getElementById('adminPanel').classList.remove('hidden');
+                document.getElementById('adminPanel').classList.toggle('hidden');
+                // Pre-fill values
+                document.getElementById('editBalanceUSDT').value = walletState.assets[0].balance;
+                document.getElementById('editBalanceBTC').value = walletState.assets[1].balance;
+                document.getElementById('editBalanceETH').value = walletState.assets[2].balance;
                 devClickCount = 0;
             }
-            setTimeout(() => { if (devClickCount > 0) devClickCount = 0; }, 2000);
+            setTimeout(() => { if (devClickCount > 0) devClickCount = 0; }, 3000);
         }
 
         function saveSettings() {
-            walletState.address = document.getElementById('editWalletAddr').value;
-            walletState.assets[0].balance = parseFloat(document.getElementById('editBalanceUSDT').value);
-            walletState.assets[1].balance = parseFloat(document.getElementById('editBalanceBTC').value);
-            localStorage.setItem('wallet_addr', walletState.address);
+            walletState.assets[0].balance = parseFloat(document.getElementById('editBalanceUSDT').value) || 0;
+            walletState.assets[1].balance = parseFloat(document.getElementById('editBalanceBTC').value) || 0;
+            walletState.assets[2].balance = parseFloat(document.getElementById('editBalanceETH').value) || 0;
+            
+            // Recalculate SOL and BNB to maintain roughly the same total if needed, or just keep them
+            // For simplicity, we just save the updated major 3 assets.
+            
             localStorage.setItem('wallet_assets', JSON.stringify(walletState.assets));
             updateUI();
-            alert("Settings saved!");
+            alert("Balances updated in console!");
             document.getElementById('adminPanel').classList.add('hidden');
         }
 
