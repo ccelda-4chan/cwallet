@@ -30,48 +30,161 @@ LOGIN_TEMPLATE = """
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        body {
+            background-color: #0F172A;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        input[type=number] {
-            -moz-appearance: textfield;
-            letter-spacing: 0.5em;
-            text-align: center;
+        .pin-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #334155;
+            transition: all 0.2s;
         }
+        .pin-dot.filled {
+            background-color: #38BDF8;
+            border-color: #38BDF8;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        .key {
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.5);
+            transition: all 0.1s;
+            cursor: pointer;
+        }
+        .key:active {
+            background: rgba(56, 189, 248, 0.2);
+            transform: scale(0.9);
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .shake { animation: shake 0.2s ease-in-out 0s 2; }
     </style>
 </head>
-<body class="bg-[#0F172A] text-white flex items-center justify-center min-h-screen p-6">
-    <div class="w-full max-w-md bg-[#1E293B] p-8 rounded-3xl shadow-2xl border border-slate-700/50">
-        <div class="text-center mb-10">
-            <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mx-auto mb-4">
+<body class="text-white flex flex-col items-center justify-center min-h-screen p-6 safe-area-inset-top safe-area-inset-bottom">
+    <div class="w-full max-w-sm flex flex-col items-center">
+        <!-- Logo & Header -->
+        <div class="text-center mb-12 animate-fade-in">
+            <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mx-auto mb-6">
                 <i class="fas fa-shield-halved text-3xl"></i>
             </div>
-            <h1 class="text-3xl font-bold text-white tracking-tight">Nexus Wallet</h1>
-            <p class="text-slate-400 mt-2">Enter PIN to unlock</p>
+            <h1 class="text-2xl font-bold tracking-tight text-white">Enter Passcode</h1>
+            <p class="text-slate-400 mt-2 text-sm">Please enter your security PIN</p>
         </div>
-        
-        <form method="POST" class="space-y-6">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">Security PIN</label>
-                <div class="relative">
-                    <input type="password" name="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required autocomplete="one-time-code"
-                           class="w-full bg-[#0F172A] border border-slate-700 rounded-2xl py-4 px-5 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white text-2xl transition-all">
-                </div>
+
+        <!-- PIN Display -->
+        <div id="pin-display" class="flex gap-6 mb-16">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <!-- Numeric Keypad -->
+        <div class="grid grid-cols-3 gap-8 w-full px-8">
+            <button class="key" onclick="appendPin('1')">1</button>
+            <button class="key" onclick="appendPin('2')">2</button>
+            <button class="key" onclick="appendPin('3')">3</button>
+            <button class="key" onclick="appendPin('4')">4</button>
+            <button class="key" onclick="appendPin('5')">5</button>
+            <button class="key" onclick="appendPin('6')">6</button>
+            <button class="key" onclick="appendPin('7')">7</button>
+            <button class="key" onclick="appendPin('8')">8</button>
+            <button class="key" onclick="appendPin('9')">9</button>
+            <div class="flex items-center justify-center">
+                <i class="fas fa-fingerprint text-slate-700 text-2xl"></i>
             </div>
-            
-            <button type="submit" class="w-full bg-sky-500 hover:bg-sky-400 py-4 rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all text-lg">
-                Unlock Wallet
+            <button class="key" onclick="appendPin('0')">0</button>
+            <button class="key" onclick="deletePin()">
+                <i class="fas fa-backspace text-xl"></i>
             </button>
+        </div>
+
+        <!-- Hidden Form -->
+        <form id="loginForm" method="POST" class="hidden">
+            <input type="hidden" name="password" id="hiddenPin">
         </form>
-        
+
         {% if error %}
-        <div class="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm text-center">
-            <i class="fas fa-exclamation-circle mr-2"></i> {{ error }}
+        <div id="errorMsg" class="mt-12 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm text-center flex items-center gap-2">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
         </div>
         {% endif %}
     </div>
+
+    <script>
+        let currentPin = "";
+        const maxPinLength = 6;
+        const dots = document.querySelectorAll('.pin-dot');
+        const display = document.getElementById('pin-display');
+        const form = document.getElementById('loginForm');
+        const hiddenInput = document.getElementById('hiddenPin');
+
+        function appendPin(digit) {
+            if (currentPin.length < maxPinLength) {
+                currentPin += digit;
+                updateDots();
+                
+                if (currentPin.length === maxPinLength) {
+                    submitPin();
+                }
+            }
+        }
+
+        function deletePin() {
+            if (currentPin.length > 0) {
+                currentPin = currentPin.slice(0, -1);
+                updateDots();
+            }
+        }
+
+        function updateDots() {
+            dots.forEach((dot, index) => {
+                if (index < currentPin.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+
+        function submitPin() {
+            hiddenInput.value = currentPin;
+            // Short delay for visual feedback
+            setTimeout(() => {
+                form.submit();
+            }, 200);
+        }
+
+        // Add shake effect on error
+        {% if error %}
+        display.classList.add('shake');
+        setTimeout(() => display.classList.remove('shake'), 500);
+        {% endif %}
+
+        // Support physical keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                appendPin(e.key);
+            } else if (e.key === 'Backspace') {
+                deletePin();
+            }
+        });
+    </script>
 </body>
 </html>
 """
@@ -724,7 +837,7 @@ def login():
             session['logged_in'] = True
             return redirect(url_for('wallet'))
         else:
-            return render_template_string(LOGIN_TEMPLATE, error="Invalid Password!")
+            return render_template_string(LOGIN_TEMPLATE, error="Invalid PIN!")
     return render_template_string(LOGIN_TEMPLATE)
 
 @app.route('/logout/', strict_slashes=False)
