@@ -616,7 +616,8 @@ WALLET_TEMPLATE = """
                 const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false');
                 const data = await res.json();
                 list.innerHTML = data.map(coin => `
-                    <div class="flex justify-between items-center glass p-4 rounded-2xl">
+                    <div class="flex justify-between items-center glass p-4 rounded-2xl cursor-pointer active:scale-95 transition-all" 
+                         onclick="window.open('https://www.coingecko.com/en/coins/${coin.id}', '_blank')">
                         <div class="flex items-center gap-3">
                             <img src="${coin.image}" class="w-8 h-8">
                             <div>
