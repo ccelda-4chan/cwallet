@@ -14,6 +14,8 @@ A high-fidelity mobile crypto wallet.
 3. Run: `python app.py`
 
 ## Deployment
-This app is configured for deployment on Render using `render.yaml`. 
+This app is configured for deployment on Render using a **Dockerfile** to ensure maximum compatibility. 
 Ensure your Render service is connected to the `main` (or `master`) branch.
-If the build fails, check that `requirements.txt` and `render.yaml` are present in the root.
+
+**Troubleshooting Build Failures:**
+If Render still fails, verify on the Render Dashboard that the **Environment** for your service is set to **Docker** (or that it is reading your `render.yaml`).
