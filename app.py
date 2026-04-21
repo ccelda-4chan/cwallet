@@ -76,6 +76,7 @@ WALLET_TEMPLATE = """
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
             background-color: #0F172A;
@@ -142,7 +143,7 @@ WALLET_TEMPLATE = """
                     </div>
                     <span class="text-xs font-medium">Send</span>
                 </button>
-                <button class="flex flex-col items-center gap-2 group">
+                <button onclick="showReceive()" class="flex flex-col items-center gap-2 group">
                     <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
                         <i class="fas fa-arrow-down -rotate-45"></i>
                     </div>
@@ -267,7 +268,12 @@ WALLET_TEMPLATE = """
             
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-bold">Send USDT</h2>
-                <button onclick="hideSend()" class="text-slate-400">Cancel</button>
+                <div class="flex gap-4">
+                    <button onclick="startScanner()" class="text-sky-400">
+                        <i class="fas fa-qrcode text-xl"></i>
+                    </button>
+                    <button onclick="hideSend()" class="text-slate-400">Cancel</button>
+                </div>
             </div>
 
             <div>
@@ -305,6 +311,50 @@ WALLET_TEMPLATE = """
         </div>
     </div>
 
+    <!-- Receive Modal -->
+    <div id="receiveModal" class="fixed inset-0 z-50 translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideReceive()"></div>
+        <div class="glass rounded-t-[40px] px-6 pt-8 pb-12 flex flex-col gap-6 items-center">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4"></div>
+            
+            <div class="w-full flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Receive USDT</h2>
+                <button onclick="hideReceive()" class="text-slate-400">Close</button>
+            </div>
+
+            <div class="bg-white p-4 rounded-3xl mt-4">
+                <!-- Using a realistic USDT QR placeholder -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=0x71C7656EC7ab88b098defB751B7401B5f6d8976F" alt="QR Code" class="w-48 h-48">
+            </div>
+
+            <div class="w-full space-y-2">
+                <p class="text-xs text-slate-400 text-center uppercase tracking-wider">Your USDT Address (ERC-20)</p>
+                <div class="glass rounded-2xl p-4 flex justify-between items-center bg-slate-800/50">
+                    <p class="text-xs font-mono text-sky-400 truncate mr-4">0x71C7656EC7ab88b098defB751B7401B5f6d8976F</p>
+                    <button onclick="copyAddress()" class="text-sky-400 px-3 py-1 bg-sky-500/10 rounded-lg">Copy</button>
+                </div>
+            </div>
+
+            <p class="text-[10px] text-slate-500 text-center px-8">
+                Send only USDT to this address. Sending any other coins may result in permanent loss.
+            </p>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="fixed inset-0 z-[70] bg-black hidden flex flex-col">
+        <div class="p-6 flex justify-between items-center">
+            <h2 class="text-xl font-bold">Scan QR Code</h2>
+            <button onclick="stopScanner()" class="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="reader" class="flex-1"></div>
+        <div class="p-12 text-center">
+            <p class="text-slate-400 text-sm">Align the QR code within the frame to scan</p>
+        </div>
+    </div>
+
     <!-- Success Screen Overlay -->
     <div id="successScreen" class="fixed inset-0 z-[60] bg-[#0F172A] hidden flex flex-col items-center justify-center p-8 text-center">
         <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-green-500/20 animate-bounce">
@@ -332,6 +382,8 @@ WALLET_TEMPLATE = """
     </div>
 
     <script>
+        let html5QrCode;
+
         function showSend() {
             document.getElementById('sendModal').classList.remove('translate-y-full');
         }
@@ -340,15 +392,68 @@ WALLET_TEMPLATE = """
             document.getElementById('sendModal').classList.add('translate-y-full');
         }
 
+        function showReceive() {
+            document.getElementById('receiveModal').classList.remove('translate-y-full');
+        }
+
+        function hideReceive() {
+            document.getElementById('receiveModal').classList.add('translate-y-full');
+        }
+
+        function copyAddress() {
+            const addr = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+            navigator.clipboard.writeText(addr);
+            const btn = event.target;
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = "Copy", 2000);
+        }
+
+        async function startScanner() {
+            document.getElementById('scannerModal').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                    document.querySelector('#sendModal input[type="text"]').value = decodedText;
+                    stopScanner();
+                });
+            } catch (err) {
+                console.error(err);
+                alert("Camera access denied or not available");
+                stopScanner();
+            }
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scannerModal').classList.add('hidden');
+                }).catch(err => {
+                    document.getElementById('scannerModal').classList.add('hidden');
+                });
+            } else {
+                document.getElementById('scannerModal').classList.add('hidden');
+            }
+        }
+
         function processSend() {
             const btn = document.getElementById('sendBtn');
+            const addr = document.querySelector('#sendModal input[type="text"]').value;
+            const amount = document.querySelector('#sendModal input[type="number"]').value;
+
+            if (!addr || !amount) {
+                alert("Please fill in all fields");
+                return;
+            }
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
             
             setTimeout(() => {
                 document.getElementById('successScreen').classList.remove('hidden');
                 hideSend();
-            }, 1500);
+            }, 2000);
         }
 
         function resetUI() {
