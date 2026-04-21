@@ -1,14 +1,20 @@
-# SOLID BOMBER PRO
+# Nexus Wallet Prototype
 
-Advanced SMS & Call Bombing Tool with Web Interface.
+A high-fidelity, Progressive Web App (PWA) prototype of a mobile crypto wallet.
 
 ## Features
-- 12+ SMS services
-- Call bombing support
-- Web UI with Flask
-- Async processing
+- **Mobile-First Design**: Optimized for iOS and Android with a dark theme and modern UI.
+- **USDT Transactions**: Simulated USDT sending flow with network selection (ERC-20, TRC-20, BEP-20).
+- **Asset Management**: Realistic view of multi-chain assets and activity.
+- **PWA Ready**: Can be installed on mobile devices for a native app experience.
+- **Secure Access**: Protected by password authentication.
 
-## Deployment
-- Optimized for Render.com
-- GitHub: [911](https://github.com/ccelda-4chan/911)
-- GitHub ready
+## Tech Stack
+- **Backend**: Flask
+- **Frontend**: Tailwind CSS, FontAwesome 6
+- **Deployment**: Optimized for Render.com
+
+## Setup
+1. Install dependencies: `pip install -r requirements.txt`
+2. Set `APP_PASSWORD` environment variable (default: `admin`).
+3. Run: `python app.py`
