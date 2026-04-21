@@ -480,7 +480,7 @@ WALLET_TEMPLATE = """
 </html>
 """
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login/', methods=['GET', 'POST'], strict_slashes=False)
 def login():
     if request.method == 'POST':
         password = request.form.get('password')
@@ -491,7 +491,7 @@ def login():
             return render_template_string(LOGIN_TEMPLATE, error="Invalid Password!")
     return render_template_string(LOGIN_TEMPLATE)
 
-@app.route('/logout')
+@app.route('/logout/', strict_slashes=False)
 def logout():
     session.pop('logged_in', None)
     return redirect(url_for('login'))
@@ -501,7 +501,7 @@ def logout():
 def index():
     return redirect(url_for('wallet'))
 
-@app.route('/wallet')
+@app.route('/wallet/', strict_slashes=False)
 @login_required
 def wallet():
     return render_template_string(WALLET_TEMPLATE)
