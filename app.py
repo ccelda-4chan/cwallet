@@ -1,0 +1,663 @@
+from flask import Flask, request, jsonify, render_template_string, session, redirect, url_for, send_file
+import os
+import logging
+from functools import wraps
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("NexusWalletWeb")
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key-change-me")
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "admin")
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nexus Wallet - Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-[#0F172A] text-white flex items-center justify-center min-h-screen p-6">
+    <div class="w-full max-w-md bg-[#1E293B] p-8 rounded-3xl shadow-2xl border border-slate-700/50">
+        <div class="text-center mb-10">
+            <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mx-auto mb-4">
+                <i class="fas fa-wallet text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">Nexus Wallet</h1>
+            <p class="text-slate-400 mt-2">Secure access to your assets</p>
+        </div>
+        
+        <form method="POST" class="space-y-6">
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Access Password</label>
+                <div class="relative">
+                    <input type="password" name="password" placeholder="••••••••" required 
+                           class="w-full bg-[#0F172A] border border-slate-700 rounded-2xl py-4 px-5 focus:outline-none focus:ring-2 focus:ring-sky-500 text-white transition-all">
+                    <i class="fas fa-lock absolute right-5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                </div>
+            </div>
+            
+            <button type="submit" class="w-full bg-sky-500 hover:bg-sky-400 py-4 rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all">
+                Login
+            </button>
+        </form>
+        
+        {% if error %}
+        <div class="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm text-center">
+            <i class="fas fa-exclamation-circle mr-2"></i> {{ error }}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+"""
+
+WALLET_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Nexus Wallet">
+    <title>Nexus Wallet</title>
+    <link rel="manifest" href="/manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            background-color: #0F172A;
+            color: white;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .safe-area-inset-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .coin-card:active {
+            transform: scale(0.98);
+            background: rgba(51, 65, 85, 0.5);
+        }
+        .tab-active {
+            color: #38BDF8;
+        }
+    </style>
+</head>
+<body class="safe-area-inset-top font-sans overflow-hidden h-screen flex flex-col">
+    <!-- Header -->
+    <div class="px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <i class="fas fa-user text-sm"></i>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Welcome back,</p>
+                <p class="font-bold">Sam IT</p>
+            </div>
+        </div>
+        <div class="flex gap-4">
+            <button class="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <i class="fas fa-bell text-slate-400"></i>
+            </button>
+            <a href="/logout" class="w-10 h-10 rounded-full glass flex items-center justify-center text-red-400">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content Scroll Area -->
+    <div class="flex-1 overflow-y-auto px-6 pb-24">
+        <!-- Balance Card -->
+        <div class="mt-4 p-6 rounded-3xl bg-gradient-to-br from-sky-500 to-blue-700 shadow-2xl shadow-blue-500/30 relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <p class="text-sky-100 text-sm opacity-80">Total Balance</p>
+            <h2 class="text-4xl font-bold mt-1">$42,560.84</h2>
+            <div class="flex items-center gap-2 mt-2 text-sky-100 text-sm">
+                <span class="bg-white/20 px-2 py-0.5 rounded-full">+2.45%</span>
+                <span>last 24h</span>
+            </div>
+            
+            <div class="flex justify-between mt-8">
+                <button onclick="showSend()" class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
+                        <i class="fas fa-arrow-up rotate-45"></i>
+                    </div>
+                    <span class="text-xs font-medium">Send</span>
+                </button>
+                <button onclick="showReceive()" class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
+                        <i class="fas fa-arrow-down -rotate-45"></i>
+                    </div>
+                    <span class="text-xs font-medium">Receive</span>
+                </button>
+                <button class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
+                        <i class="fas fa-repeat"></i>
+                    </div>
+                    <span class="text-xs font-medium">Swap</span>
+                </button>
+                <button class="flex flex-col items-center gap-2 group">
+                    <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-active:scale-90 transition-transform">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <span class="text-xs font-medium">Buy</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Assets -->
+        <div class="mt-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Your Assets</h3>
+                <button class="text-sky-400 text-sm">See All</button>
+            </div>
+            
+            <div class="space-y-3">
+                <!-- Tether -->
+                <div class="coin-card p-4 rounded-2xl glass flex justify-between items-center transition-all cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-[#26A17B]/20 flex items-center justify-center">
+                            <i class="fab fa-ethereum text-[#26A17B] text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">Tether</p>
+                            <p class="text-xs text-slate-400">USDT</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold">25,400.00</p>
+                        <p class="text-xs text-slate-400">$25,400.00</p>
+                    </div>
+                </div>
+
+                <!-- Bitcoin -->
+                <div class="coin-card p-4 rounded-2xl glass flex justify-between items-center transition-all cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                            <i class="fab fa-bitcoin text-orange-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold">Bitcoin</p>
+                            <p class="text-xs text-slate-400">BTC</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold">0.42069</p>
+                        <p class="text-xs text-slate-400">$17,160.84</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="mt-8">
+            <h3 class="text-lg font-bold mb-4">Activity</h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between cursor-pointer active:scale-95 transition-transform" onclick="showTxDetail('Received', '1,200.00', 'Today, 10:45 AM', '0x71...8976F', 'Confirmed')">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full glass flex items-center justify-center">
+                            <i class="fas fa-arrow-down text-green-500 text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Received USDT</p>
+                            <p class="text-[10px] text-slate-500">Today, 10:45 AM</p>
+                        </div>
+                    </div>
+                    <p class="text-sm font-bold text-green-500">+$1,200.00</p>
+                </div>
+                <div class="flex items-center justify-between cursor-pointer active:scale-95 transition-transform" onclick="showTxDetail('Sent', '450.00', 'Yesterday, 4:20 PM', '0x8a...4f9b', 'Confirmed')">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full glass flex items-center justify-center">
+                            <i class="fas fa-arrow-up text-red-500 text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Sent USDT</p>
+                            <p class="text-[10px] text-slate-500">Yesterday, 4:20 PM</p>
+                        </div>
+                    </div>
+                    <p class="text-sm font-bold">-$450.00</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Detail Modal -->
+    <div id="txDetailModal" class="fixed inset-0 z-50 translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideTxDetail()"></div>
+        <div class="glass rounded-t-[40px] px-6 pt-8 pb-12 flex flex-col gap-6">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4"></div>
+            
+            <div class="text-center mb-4">
+                <div id="txDetailIcon" class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 text-2xl shadow-lg"></div>
+                <h2 id="txDetailTitle" class="text-2xl font-bold">Transaction Details</h2>
+                <p id="txDetailStatus" class="text-green-500 text-sm font-bold uppercase tracking-widest mt-1">Confirmed</p>
+            </div>
+
+            <div class="glass rounded-3xl p-6 space-y-5">
+                <div class="flex justify-between">
+                    <span class="text-slate-400 text-sm">Amount</span>
+                    <span id="txDetailAmount" class="font-bold text-white">0.00 USDT</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400 text-sm">Date</span>
+                    <span id="txDetailDate" class="text-white text-sm">Jan 1, 2024</span>
+                </div>
+                <div class="flex justify-between items-start">
+                    <span class="text-slate-400 text-sm">Address</span>
+                    <span id="txDetailAddr" class="text-sky-400 text-xs font-mono break-all text-right ml-8">0x...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400 text-sm">Network</span>
+                    <span class="text-white text-sm font-bold">ERC-20</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400 text-sm">Transaction ID</span>
+                    <span class="text-sky-400 text-xs font-mono">0x9f...e2a1</span>
+                </div>
+            </div>
+
+            <button onclick="hideTxDetail()" class="w-full bg-slate-800 py-4 rounded-2xl font-bold active:scale-[0.98] transition-all">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="fixed bottom-0 left-0 right-0 glass h-20 px-8 flex justify-between items-center rounded-t-[32px] z-40">
+        <button class="tab-active flex flex-col items-center gap-1">
+            <i class="fas fa-wallet text-xl"></i>
+            <span class="text-[10px]">Wallet</span>
+        </button>
+        <button class="text-slate-500 flex flex-col items-center gap-1">
+            <i class="fas fa-chart-pie text-xl"></i>
+            <span class="text-[10px]">Market</span>
+        </button>
+        <button class="text-slate-500 flex flex-col items-center gap-1">
+            <i class="fas fa-compass text-xl"></i>
+            <span class="text-[10px]">DApps</span>
+        </button>
+        <button class="text-slate-500 flex flex-col items-center gap-1">
+            <i class="fas fa-gear text-xl"></i>
+            <span class="text-[10px]">Settings</span>
+        </button>
+    </div>
+
+    <!-- Send Modal -->
+    <div id="sendModal" class="fixed inset-0 z-50 translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideSend()"></div>
+        <div class="glass rounded-t-[40px] px-6 pt-8 pb-12 flex flex-col gap-6">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4"></div>
+            
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Send USDT</h2>
+                <div class="flex gap-4">
+                    <button onclick="startScanner()" class="text-sky-400">
+                        <i class="fas fa-qrcode text-xl"></i>
+                    </button>
+                    <button onclick="hideSend()" class="text-slate-400">Cancel</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs text-slate-400 mb-2 block uppercase tracking-wider">Network</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <button class="network-btn py-3 glass rounded-2xl border-sky-500 bg-sky-500/10 text-xs" data-net="ERC-20">ERC-20</button>
+                    <button class="network-btn py-3 glass rounded-2xl text-xs border-transparent" data-net="TRC-20">TRC-20</button>
+                    <button class="network-btn py-3 glass rounded-2xl text-xs border-transparent" data-net="BEP-20">BEP-20</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs text-slate-400 mb-2 block uppercase tracking-wider">Recipient Address</label>
+                <div class="relative">
+                    <input type="text" id="recipientAddr" placeholder="Paste address or domain" class="w-full glass rounded-2xl py-4 px-5 pr-12 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500">
+                    <i class="fas fa-paste absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" onclick="pasteAddress()"></i>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs text-slate-400 mb-2 block uppercase tracking-wider">Amount</label>
+                <div class="relative">
+                    <input type="number" id="sendAmount" placeholder="0.00" class="w-full glass rounded-2xl py-4 px-5 pr-20 text-2xl font-bold focus:outline-none focus:ring-1 focus:ring-sky-500">
+                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sky-400 font-bold" onclick="setMaxAmount()">MAX</span>
+                </div>
+                <div class="flex justify-between mt-2 px-1">
+                    <p class="text-xs text-slate-400">Available: 25,400.00 USDT</p>
+                    <p class="text-xs text-slate-400">≈ $<span id="usdVal">0.00</span></p>
+                </div>
+            </div>
+
+            <button onclick="showReview()" class="w-full bg-sky-500 py-4 rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all mt-4">
+                Next
+            </button>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="fixed inset-0 z-[55] translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideReview()"></div>
+        <div class="glass rounded-t-[40px] px-6 pt-8 pb-12 flex flex-col gap-6">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4"></div>
+            
+            <div class="text-center">
+                <h2 class="text-2xl font-bold">Review Transaction</h2>
+                <p class="text-slate-400 text-sm mt-1">Double check the details</p>
+            </div>
+
+            <div class="bg-slate-800/50 rounded-3xl p-6 space-y-4">
+                <div class="flex justify-between border-b border-slate-700/50 pb-3">
+                    <span class="text-slate-400 text-sm">Send</span>
+                    <span class="font-bold text-lg"><span id="reviewAmount">0.00</span> USDT</span>
+                </div>
+                <div class="space-y-1">
+                    <span class="text-slate-400 text-xs uppercase tracking-widest">Recipient</span>
+                    <p class="text-sm font-mono break-all" id="reviewAddr">0x...</p>
+                </div>
+                <div class="flex justify-between pt-2">
+                    <span class="text-slate-400 text-sm">Network</span>
+                    <span class="text-sm font-bold" id="reviewNet">ERC-20</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400 text-sm">Network Fee</span>
+                    <span class="text-sm font-bold">$4.52</span>
+                </div>
+            </div>
+
+            <button id="confirmBtn" onclick="processSend()" class="w-full bg-sky-500 py-4 rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98] transition-all">
+                Confirm and Send
+            </button>
+            <button onclick="hideReview()" class="text-slate-400 font-medium">Go Back</button>
+        </div>
+    </div>
+
+    <!-- Receive Modal -->
+    <div id="receiveModal" class="fixed inset-0 z-50 translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideReceive()"></div>
+        <div class="glass rounded-t-[40px] px-6 pt-8 pb-12 flex flex-col gap-6 items-center">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4"></div>
+            
+            <div class="w-full flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Receive USDT</h2>
+                <button onclick="hideReceive()" class="text-slate-400">Close</button>
+            </div>
+
+            <div class="bg-white p-4 rounded-3xl mt-4">
+                <!-- Using a realistic USDT QR placeholder -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=0x71C7656EC7ab88b098defB751B7401B5f6d8976F" alt="QR Code" class="w-48 h-48">
+            </div>
+
+            <div class="w-full space-y-2">
+                <p class="text-xs text-slate-400 text-center uppercase tracking-wider">Your USDT Address (ERC-20)</p>
+                <div class="glass rounded-2xl p-4 flex justify-between items-center bg-slate-800/50">
+                    <p class="text-xs font-mono text-sky-400 truncate mr-4">0x71C7656EC7ab88b098defB751B7401B5f6d8976F</p>
+                    <button onclick="copyAddress()" class="text-sky-400 px-3 py-1 bg-sky-500/10 rounded-lg">Copy</button>
+                </div>
+            </div>
+
+            <p class="text-[10px] text-slate-500 text-center px-8">
+                Send only USDT to this address. Sending any other coins may result in permanent loss.
+            </p>
+        </div>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div id="scannerModal" class="fixed inset-0 z-[70] bg-black hidden flex flex-col">
+        <div class="p-6 flex justify-between items-center">
+            <h2 class="text-xl font-bold">Scan QR Code</h2>
+            <button onclick="stopScanner()" class="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="reader" class="flex-1"></div>
+        <div class="p-12 text-center">
+            <p class="text-slate-400 text-sm">Align the QR code within the frame to scan</p>
+        </div>
+    </div>
+
+    <!-- Success Screen Overlay -->
+    <div id="successScreen" class="fixed inset-0 z-[60] bg-[#0F172A] hidden flex flex-col items-center justify-center p-8 text-center">
+        <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-green-500/20 animate-bounce">
+            <i class="fas fa-check text-4xl"></i>
+        </div>
+        <h2 class="text-3xl font-bold mb-2">Transfer Successful</h2>
+        <p class="text-slate-400 mb-12">Your USDT is on its way to the recipient on the ERC-20 network.</p>
+        
+        <div class="w-full glass rounded-3xl p-6 mb-12 space-y-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Transaction ID</span>
+                <span class="text-sky-400 truncate ml-8">0x8a2c...4f9b</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Status</span>
+                <span class="text-green-500">Confirmed</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-400">Network Fee</span>
+                <span class="font-medium">$4.52</span>
+            </div>
+        </div>
+
+        <button onclick="resetUI()" class="w-full glass py-4 rounded-2xl font-bold">Done</button>
+    </div>
+
+    <script>
+        let html5QrCode;
+        let selectedNetwork = "ERC-20";
+
+        function showSend() {
+            document.getElementById('sendModal').classList.remove('translate-y-full');
+        }
+
+        function hideSend() {
+            document.getElementById('sendModal').classList.add('translate-y-full');
+        }
+
+        function showReview() {
+            const addr = document.getElementById('recipientAddr').value;
+            const amount = document.getElementById('sendAmount').value;
+            
+            if (!addr || !amount || amount <= 0) {
+                alert("Please enter a valid address and amount");
+                return;
+            }
+
+            document.getElementById('reviewAddr').innerText = addr;
+            document.getElementById('reviewAmount').innerText = parseFloat(amount).toLocaleString();
+            document.getElementById('reviewNet').innerText = selectedNetwork;
+            
+            document.getElementById('reviewModal').classList.remove('translate-y-full');
+        }
+
+        function hideReview() {
+            document.getElementById('reviewModal').classList.add('translate-y-full');
+        }
+
+        function showReceive() {
+            document.getElementById('receiveModal').classList.remove('translate-y-full');
+        }
+
+        function hideReceive() {
+            document.getElementById('receiveModal').classList.add('translate-y-full');
+        }
+
+        function showTxDetail(type, amount, date, addr, status) {
+            const modal = document.getElementById('txDetailModal');
+            const icon = document.getElementById('txDetailIcon');
+            const title = document.getElementById('txDetailTitle');
+            const statusEl = document.getElementById('txDetailStatus');
+            
+            title.innerText = `${type} USDT`;
+            document.getElementById('txDetailAmount').innerText = `${type === 'Received' ? '+' : '-'}${amount} USDT`;
+            document.getElementById('txDetailDate').innerText = date;
+            document.getElementById('txDetailAddr').innerText = addr;
+            
+            if (type === 'Received') {
+                icon.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                icon.className = 'w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 text-2xl shadow-lg bg-green-500/20 text-green-500';
+                statusEl.className = 'text-green-500 text-sm font-bold uppercase tracking-widest mt-1';
+            } else {
+                icon.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                icon.className = 'w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 text-2xl shadow-lg bg-red-500/20 text-red-500';
+                statusEl.className = 'text-slate-400 text-sm font-bold uppercase tracking-widest mt-1';
+            }
+            
+            modal.classList.remove('translate-y-full');
+        }
+
+        function hideTxDetail() {
+            document.getElementById('txDetailModal').classList.add('translate-y-full');
+        }
+
+        async function pasteAddress() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('recipientAddr').value = text;
+            } catch (err) {
+                console.error('Failed to read clipboard contents: ', err);
+            }
+        }
+
+        function setMaxAmount() {
+            document.getElementById('sendAmount').value = 25400.00;
+            updateUSD();
+        }
+
+        function updateUSD() {
+            const amount = document.getElementById('sendAmount').value;
+            document.getElementById('usdVal').innerText = (amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2});
+        }
+
+        document.getElementById('sendAmount').addEventListener('input', updateUSD);
+
+        function copyAddress() {
+            const addr = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+            navigator.clipboard.writeText(addr);
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="text-[10px] uppercase font-bold">Copied!</span>';
+            setTimeout(() => btn.innerHTML = originalText, 2000);
+        }
+
+        async function startScanner() {
+            document.getElementById('scannerModal').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                    document.getElementById('recipientAddr').value = decodedText;
+                    stopScanner();
+                });
+            } catch (err) {
+                console.error(err);
+                alert("Camera access denied or not available");
+                stopScanner();
+            }
+        }
+
+        function stopScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scannerModal').classList.add('hidden');
+                }).catch(err => {
+                    document.getElementById('scannerModal').classList.add('hidden');
+                });
+            } else {
+                document.getElementById('scannerModal').classList.add('hidden');
+            }
+        }
+
+        function processSend() {
+            const btn = document.getElementById('confirmBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Broadcasting...';
+            
+            setTimeout(() => {
+                document.getElementById('successScreen').classList.remove('hidden');
+                hideReview();
+                hideSend();
+            }, 2500);
+        }
+
+        function resetUI() {
+            document.getElementById('successScreen').classList.add('hidden');
+            const btn = document.getElementById('confirmBtn');
+            btn.disabled = false;
+            btn.innerHTML = 'Confirm and Send';
+            
+            // Clear inputs
+            document.getElementById('recipientAddr').value = '';
+            document.getElementById('sendAmount').value = '';
+            document.getElementById('usdVal').innerText = '0.00';
+        }
+
+        // Network selection logic
+        const netBtns = document.querySelectorAll('.network-btn');
+        netBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                netBtns.forEach(b => {
+                    b.classList.remove('border-sky-500', 'bg-sky-500/10');
+                    b.classList.add('border-transparent');
+                });
+                btn.classList.add('border-sky-500', 'bg-sky-500/10');
+                btn.classList.remove('border-transparent');
+                selectedNetwork = btn.getAttribute('data-net');
+            });
+        });
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == APP_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('wallet'))
+        else:
+            return render_template_string(LOGIN_TEMPLATE, error="Invalid Password!")
+    return render_template_string(LOGIN_TEMPLATE)
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
+@app.route('/')
+@login_required
+def index():
+    return redirect(url_for('wallet'))
+
+@app.route('/wallet')
+@login_required
+def wallet():
+    return render_template_string(WALLET_TEMPLATE)
+
+@app.route('/manifest.json')
+def manifest():
+    return send_file('manifest.json')
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
