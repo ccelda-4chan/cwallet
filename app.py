@@ -28,7 +28,10 @@ LOGIN_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Nexus Wallet">
+    <meta name="theme-color" content="#0F172A">
     <link rel="apple-touch-icon" href="/icon.png">
+    <link rel="manifest" href="/manifest.json">
     <title>Nexus Wallet - Unlock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,7 +39,7 @@ LOGIN_TEMPLATE = """
         body { background-color: #0F172A; color: white; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .pin-dot { width: 12px; height: 12px; border: 2px solid #334155; border-radius: 50%; transition: all 0.2s; }
         .pin-dot.filled { background-color: #38BDF8; border-color: #38BDF8; box-shadow: 0 0 10px #38BDF8; }
-        .key { height: 70px; display: flex; items-center; justify-center; font-size: 1.5rem; font-weight: 600; border-radius: 50%; transition: all 0.1s; cursor: pointer; }
+        .key { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600; border-radius: 50%; transition: all 0.1s; cursor: pointer; }
         .key:active { background-color: #334155; transform: scale(0.9); }
         .shake { animation: shake 0.4s; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
@@ -60,7 +63,7 @@ LOGIN_TEMPLATE = """
         <div class="pin-dot"></div>
     </div>
 
-    <div class="w-full max-w-xs grid grid-cols-3 gap-y-4 gap-x-8">
+    <div class="w-full max-w-[280px] grid grid-cols-3 gap-y-4 gap-x-8 mx-auto">
         <div class="key" onclick="press(1)">1</div>
         <div class="key" onclick="press(2)">2</div>
         <div class="key" onclick="press(3)">3</div>
@@ -144,6 +147,7 @@ WALLET_TEMPLATE = """
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nexus Wallet">
+    <meta name="theme-color" content="#0F172A">
     <link rel="apple-touch-icon" href="/icon.png">
     <title>Nexus Wallet</title>
     <link rel="manifest" href="/manifest.json">
@@ -379,7 +383,7 @@ WALLET_TEMPLATE = """
                     </div>
                     <span class="font-medium">About</span>
                 </div>
-                <span class="text-xs text-slate-600">v2.5.2</span>
+                <span class="text-xs text-slate-600">v2.6.0</span>
             </div>
         </div>
 
@@ -668,14 +672,21 @@ WALLET_TEMPLATE = """
     </div>
 
     <script>
+        const APP_VERSION = "2.6.0";
+        if (localStorage.getItem('app_version') !== APP_VERSION) {
+            localStorage.removeItem('wallet_assets');
+            localStorage.removeItem('wallet_history');
+            localStorage.setItem('app_version', APP_VERSION);
+        }
+
         let walletState = {
             address: localStorage.getItem('wallet_addr') || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
             assets: JSON.parse(localStorage.getItem('wallet_assets')) || [
-                { name: 'Tether', sym: 'USDT', balance: 11450.00, icon: 'fab fa-ethereum', color: '#26A17B' },
-                { name: 'Bitcoin', sym: 'BTC', balance: 0.0824, icon: 'fab fa-bitcoin', color: '#F7931A' },
-                { name: 'Ethereum', sym: 'ETH', balance: 1.45, icon: 'fab fa-ethereum', color: '#627EEA' },
-                { name: 'Solana', sym: 'SOL', balance: 42.5, icon: 'fas fa-s', color: '#14F195' },
-                { name: 'Binance', sym: 'BNB', balance: 2.1, icon: 'fas fa-b', color: '#F3BA2F' }
+                { name: 'Tether', sym: 'USDT', balance: 5120.00, icon: 'fab fa-ethereum', color: '#26A17B' },
+                { name: 'Bitcoin', sym: 'BTC', balance: 0.015, icon: 'fab fa-bitcoin', color: '#F7931A' },
+                { name: 'Ethereum', sym: 'ETH', balance: 0.25, icon: 'fab fa-ethereum', color: '#627EEA' },
+                { name: 'Solana', sym: 'SOL', balance: 1.8, icon: 'fas fa-s', color: '#14F195' },
+                { name: 'Binance', sym: 'BNB', balance: 0.2, icon: 'fas fa-b', color: '#F3BA2F' }
             ],
             history: JSON.parse(localStorage.getItem('wallet_history')) || [
                 { type: 'Received', sym: 'USDT', amount: 500.00, date: 'Today, 10:45 AM', status: 'Confirmed', net: 'ERC-20' },

@@ -2,6 +2,7 @@
   "name": "Nexus Wallet",
   "short_name": "Nexus",
   "start_url": "/wallet",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#0F172A",
