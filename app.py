@@ -28,6 +28,7 @@ LOGIN_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icon.png">
     <title>Nexus Wallet - Unlock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -143,6 +144,7 @@ WALLET_TEMPLATE = """
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nexus Wallet">
+    <link rel="apple-touch-icon" href="/icon.png">
     <title>Nexus Wallet</title>
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -195,7 +197,7 @@ WALLET_TEMPLATE = """
             <p class="text-blue-100/70 text-xs font-bold uppercase tracking-widest mb-1">Total Balance</p>
             <div class="flex items-baseline gap-2">
                 <h2 id="totalBalance" class="text-4xl font-bold text-white tracking-tight">$0.00</h2>
-                <i class="fas fa-eye text-blue-200/40 text-xs cursor-pointer hover:text-white transition-colors"></i>
+                <i onclick="manualRefresh()" id="refreshIcon" class="fas fa-rotate-right text-blue-200/40 text-xs cursor-pointer hover:text-white transition-all"></i>
             </div>
             
             <div class="flex items-center gap-2 mt-5">
@@ -204,6 +206,10 @@ WALLET_TEMPLATE = """
                     <span>5.24%</span>
                 </div>
                 <span class="text-blue-100/40 text-[10px] font-bold uppercase tracking-tighter">Profit today</span>
+            </div>
+
+            <div id="portfolioBar" class="flex h-1.5 w-full bg-white/10 rounded-full mt-6 overflow-hidden">
+                <!-- Injected by JS -->
             </div>
         </div>
 
@@ -221,8 +227,8 @@ WALLET_TEMPLATE = """
                 </div>
                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Receive</span>
             </button>
-            <button class="flex flex-col items-center gap-2 group opacity-50">
-                <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-amber-400 shadow-lg border border-white/5">
+            <button onclick="showModal('swapModal')" class="flex flex-col items-center gap-2 group">
+                <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-amber-400 shadow-lg group-active:scale-90 transition-all border border-white/5">
                     <i class="fas fa-repeat text-lg"></i>
                 </div>
                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Swap</span>
@@ -270,13 +276,69 @@ WALLET_TEMPLATE = """
         </div>
     </div>
 
-    <div id="dappsTab" class="tab-content flex-1 overflow-y-auto px-6 pb-24 items-center justify-center text-center">
-        <div class="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mb-6">
-            <i class="fas fa-compass text-4xl text-slate-600"></i>
+    <div id="dappsTab" class="tab-content flex-1 overflow-y-auto px-6 pb-32">
+        <h2 class="text-2xl font-bold mt-6 mb-6">Explore DApps</h2>
+        <div class="glass p-4 rounded-3xl mb-8 flex items-center gap-4">
+            <i class="fas fa-search text-slate-500"></i>
+            <input type="text" placeholder="Search or enter URL" class="bg-transparent text-sm focus:outline-none w-full">
         </div>
-        <h2 class="text-xl font-bold mb-2">Web3 Browser</h2>
-        <p class="text-slate-500 text-sm px-10">Discover and interact with decentralized applications safely.</p>
-        <button class="mt-8 px-8 py-3 bg-sky-500 rounded-2xl font-bold text-sm">Explore DApps</button>
+
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest">Popular</h3>
+                <span class="text-xs text-sky-400">See all</span>
+            </div>
+            <div class="grid grid-cols-4 gap-4">
+                <a href="https://app.uniswap.org" target="_blank" class="flex flex-col items-center gap-2">
+                    <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center">
+                        <img src="https://cryptologos.cc/logos/uniswap-uni-logo.png" class="w-8 h-8 rounded-full">
+                    </div>
+                    <span class="text-[8px] font-bold">Uniswap</span>
+                </a>
+                <a href="https://opensea.io" target="_blank" class="flex flex-col items-center gap-2">
+                    <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center text-blue-400">
+                        <i class="fas fa-ship text-xl"></i>
+                    </div>
+                    <span class="text-[8px] font-bold">OpenSea</span>
+                </a>
+                <a href="https://pancakeswap.finance" target="_blank" class="flex flex-col items-center gap-2">
+                    <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center">
+                        <img src="https://cryptologos.cc/logos/pancakeswap-cake-logo.png" class="w-8 h-8">
+                    </div>
+                    <span class="text-[8px] font-bold">Pancake</span>
+                </a>
+                <a href="https://curve.fi" target="_blank" class="flex flex-col items-center gap-2">
+                    <div class="w-14 h-14 rounded-2xl glass flex items-center justify-center">
+                        <i class="fas fa-chart-area text-xl text-green-400"></i>
+                    </div>
+                    <span class="text-[8px] font-bold">Curve</span>
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Recommended</h3>
+            <div class="space-y-4">
+                <div class="p-4 glass rounded-3xl flex items-center gap-4">
+                    <div class="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400">
+                        <i class="fas fa-link text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-sm">Lido Staking</p>
+                        <p class="text-[10px] text-slate-500">Stake ETH and receive stETH</p>
+                    </div>
+                </div>
+                <div class="p-4 glass rounded-3xl flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-blue-400">
+                        <i class="fas fa-building-columns text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-sm">Aave V3</p>
+                        <p class="text-[10px] text-slate-500">Liquidity protocol for earning interest</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="settingsTab" class="tab-content flex-1 overflow-y-auto px-6 pb-24">
@@ -333,11 +395,25 @@ WALLET_TEMPLATE = """
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] text-slate-500 uppercase font-bold">USDT Bal</label>
-                        <input type="number" id="editUsdt" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
+                        <input type="number" step="any" id="editUsdt" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 uppercase font-bold">BTC Bal</label>
-                        <input type="number" id="editBtc" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
+                        <input type="number" step="any" id="editBtc" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-[10px] text-slate-500 uppercase font-bold text-[8px]">ETH</label>
+                        <input type="number" step="any" id="editEth" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 uppercase font-bold text-[8px]">SOL</label>
+                        <input type="number" step="any" id="editSol" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 uppercase font-bold text-[8px]">BNB</label>
+                        <input type="number" step="any" id="editBnb" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-3 text-xs mt-1">
                     </div>
                 </div>
                 <button onclick="saveDevChanges()" class="w-full bg-sky-500 py-3 rounded-xl font-bold text-xs">Apply Changes</button>
@@ -376,12 +452,28 @@ WALLET_TEMPLATE = """
                 <h2 class="text-2xl font-bold">Send USDT</h2>
                 <button onclick="hideModal('sendModal')" class="text-slate-400">Cancel</button>
             </div>
+            <div id="assetSelector" class="relative">
+                <label class="text-[10px] text-slate-500 uppercase font-bold mb-3 block">Asset</label>
+                <button onclick="toggleAssetDropdown()" id="selectedAssetBtn" class="w-full glass rounded-2xl py-4 px-5 flex items-center justify-between border border-white/5">
+                    <div class="flex items-center gap-3">
+                        <div id="selectedAssetIcon" class="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center">
+                            <i class="fab fa-ethereum text-sky-400"></i>
+                        </div>
+                        <div class="text-left">
+                            <p id="selectedAssetName" class="text-sm font-bold">Tether</p>
+                            <p id="selectedAssetSym" class="text-[10px] text-slate-500 font-bold tracking-widest uppercase">USDT</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down text-slate-600 text-xs"></i>
+                </button>
+                <div id="assetDropdown" class="hidden absolute top-full left-0 right-0 mt-2 glass rounded-2xl border border-white/5 overflow-hidden z-[60] shadow-2xl">
+                    <!-- Dropdown items injected by JS -->
+                </div>
+            </div>
             <div>
                 <label class="text-[10px] text-slate-500 uppercase font-bold mb-3 block">Network</label>
-                <div class="grid grid-cols-3 gap-2">
-                    <button class="network-btn py-3 glass rounded-2xl border-sky-500 bg-sky-500/10 text-[10px] font-bold">ERC-20</button>
-                    <button class="network-btn py-3 glass rounded-2xl text-[10px] font-bold border-transparent">TRC-20</button>
-                    <button class="network-btn py-3 glass rounded-2xl text-[10px] font-bold border-transparent">BEP-20</button>
+                <div id="networkGrid" class="grid grid-cols-3 gap-2">
+                    <!-- Network buttons injected by JS -->
                 </div>
             </div>
             <div class="relative">
@@ -393,7 +485,7 @@ WALLET_TEMPLATE = """
                 <label class="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Amount</label>
                 <div class="relative">
                     <input type="number" id="sendAmount" placeholder="0.00" class="w-full glass rounded-2xl py-4 px-5 pr-20 text-2xl font-bold focus:outline-none border border-white/5">
-                    <span onclick="setMax()" class="absolute right-4 top-1/2 -translate-y-1/2 text-sky-400 font-bold text-xs bg-sky-500/10 px-3 py-1 rounded-lg">MAX</span>
+                    <span onclick="setMax()" class="absolute right-4 top-1/2 -translate-y-1/2 text-sky-400 font-bold text-xs bg-sky-500/10 px-3 py-1 rounded-lg cursor-pointer">MAX</span>
                 </div>
                 <p id="sendBalanceText" class="text-[10px] text-slate-500 mt-2 px-1">Available: 0.00 USDT</p>
             </div>
@@ -403,12 +495,123 @@ WALLET_TEMPLATE = """
         </div>
     </div>
 
+    <!-- Swap Modal -->
+    <div id="swapModal" class="fixed inset-0 z-50 translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideModal('swapModal')"></div>
+        <div class="glass rounded-t-[40px] px-6 pt-8 pb-12 flex flex-col gap-6">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4 mb-2"></div>
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Swap</h2>
+                <button onclick="hideModal('swapModal')" class="text-slate-400">Cancel</button>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="glass rounded-2xl p-5 border border-white/5">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase">Sell</span>
+                        <span id="swapFromBal" class="text-[10px] text-slate-500 font-bold">Balance: 0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div onclick="openSwapAssetList('from')" class="flex items-center gap-3 bg-white/5 px-3 py-2 rounded-xl cursor-pointer">
+                            <div id="swapFromIcon" class="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                                <i class="fab fa-ethereum text-sky-400 text-xs"></i>
+                            </div>
+                            <span id="swapFromSym" class="font-bold text-sm">USDT</span>
+                            <i class="fas fa-chevron-down text-[8px] text-slate-600"></i>
+                        </div>
+                        <input type="number" id="swapAmount" oninput="calculateSwap()" placeholder="0.00" class="bg-transparent text-right text-2xl font-bold focus:outline-none w-1/2">
+                    </div>
+                </div>
+
+                <div class="flex justify-center -my-3 relative z-10">
+                    <button onclick="flipSwap()" class="w-10 h-10 bg-slate-800 rounded-xl border border-white/10 flex items-center justify-center text-sky-400 shadow-xl">
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-5 border border-white/5">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase">Buy</span>
+                        <span id="swapToBal" class="text-[10px] text-slate-500 font-bold">Balance: 0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div onclick="openSwapAssetList('to')" class="flex items-center gap-3 bg-white/5 px-3 py-2 rounded-xl cursor-pointer">
+                            <div id="swapToIcon" class="w-6 h-6 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                <i class="fab fa-ethereum text-purple-400 text-xs"></i>
+                            </div>
+                            <span id="swapToSym" class="font-bold text-sm">ETH</span>
+                            <i class="fas fa-chevron-down text-[8px] text-slate-600"></i>
+                        </div>
+                        <div id="swapResult" class="text-2xl font-bold text-slate-500">0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-2 space-y-2">
+                <div class="flex justify-between text-[10px] font-bold">
+                    <span class="text-slate-500">Estimated Gas Fee</span>
+                    <span id="swapFee" class="text-slate-300">0.00 USDT</span>
+                </div>
+                <div class="flex justify-between text-[10px] font-bold">
+                    <span class="text-slate-500">Price Impact</span>
+                    <span class="text-green-400">< 0.01%</span>
+                </div>
+            </div>
+
+            <button id="confirmSwapBtn" onclick="executeSwap()" class="w-full bg-amber-500 py-4 rounded-2xl font-bold shadow-lg shadow-amber-500/20 active:scale-95 transition-all">
+                Swap Now
+            </button>
+        </div>
+    </div>
+
+    <!-- TX Details Modal -->
+    <div id="txDetailsModal" class="fixed inset-0 z-50 translate-y-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="flex-1 bg-black/60 backdrop-blur-sm" onclick="hideModal('txDetailsModal')"></div>
+        <div class="glass rounded-t-[40px] px-8 pt-8 pb-12">
+            <div class="w-12 h-1 bg-slate-700 rounded-full mx-auto -mt-4 mb-6"></div>
+            <div class="text-center mb-8">
+                <div id="detIcon" class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 text-2xl">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <h2 id="detType" class="text-xl font-bold">Transaction Details</h2>
+                <p id="detDate" class="text-slate-500 text-xs">April 22, 2026 at 6:15 AM</p>
+            </div>
+
+            <div class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-slate-500 font-bold uppercase">Status</span>
+                    <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-[10px] font-black uppercase">Confirmed</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-slate-500 font-bold uppercase">Amount</span>
+                    <span id="detAmount" class="font-bold">0.00 USDT</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-slate-500 font-bold uppercase">Network</span>
+                    <span id="detNet" class="font-bold text-slate-300">Ethereum</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-slate-500 font-bold uppercase">Network Fee</span>
+                    <span id="detFee" class="text-slate-300 font-bold">$1.24</span>
+                </div>
+                <div class="pt-4 border-t border-white/5">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-2">Transaction Hash</p>
+                    <div class="glass rounded-xl p-3 flex justify-between items-center">
+                        <p id="detHash" class="text-[10px] font-mono text-sky-400 truncate mr-4">0x...</p>
+                        <i onclick="copyText(document.getElementById('detHash').innerText)" class="fas fa-copy text-sky-400 cursor-pointer"></i>
+                    </div>
+                </div>
+            </div>
+            <button onclick="hideModal('txDetailsModal')" class="w-full mt-10 py-4 glass rounded-2xl font-bold text-slate-400">Close</button>
+        </div>
+    </div>
+
     <!-- Success Screen -->
     <div id="successScreen" class="fixed inset-0 z-[60] bg-[#0F172A] hidden flex flex-col items-center justify-center p-8 text-center">
         <div class="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-green-500/40 animate-bounce">
             <i class="fas fa-check text-4xl"></i>
         </div>
-        <h2 class="text-3xl font-bold mb-3">Sent Successfully</h2>
+        <h2 id="successTitle" class="text-3xl font-bold mb-3">Success</h2>
         <p class="text-slate-400 text-sm mb-12 px-6">Your transaction has been broadcasted to the network.</p>
         
         <div class="w-full glass rounded-[32px] p-6 mb-12 space-y-4">
@@ -481,6 +684,7 @@ WALLET_TEMPLATE = """
             prices: { USDT: 1, BTC: 64500, ETH: 3450, SOL: 145, BNB: 580 }
         };
 
+        let selectedAssetIdx = 0;
         let devClicks = 0;
         let html5QrCode;
 
@@ -507,7 +711,7 @@ WALLET_TEMPLATE = """
                         total += val;
                         
                         container.innerHTML += `
-                            <div class="coin-card p-5 rounded-[32px] glass flex justify-between items-center">
+                            <div class="coin-card p-5 rounded-[32px] glass flex justify-between items-center" onclick="openSendWithAsset('${asset.sym}')">
                                 <div class="flex items-center gap-4">
                                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background: ${asset.color}15">
                                         <i class="${asset.icon}" style="color: ${asset.color}"></i>
@@ -530,30 +734,52 @@ WALLET_TEMPLATE = """
                 if (totalEl) {
                     totalEl.innerText = `$${total.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
                 }
-                
-                const sendBalText = document.getElementById('sendBalanceText');
-                if (sendBalText) {
-                    sendBalText.innerText = `Available: ${walletState.assets[0].balance.toLocaleString()} USDT`;
+
+                // Update Portfolio Bar
+                const portfolioBar = document.getElementById('portfolioBar');
+                if (portfolioBar) {
+                    portfolioBar.innerHTML = '';
+                    walletState.assets.forEach(asset => {
+                        const price = walletState.prices[asset.sym] || 0;
+                        const val = asset.balance * price;
+                        const pct = total > 0 ? (val / total) * 100 : 0;
+                        if (pct > 1) {
+                            portfolioBar.innerHTML += `<div style="width: ${pct}%; background: ${asset.color}; height: 100%"></div>`;
+                        }
+                    });
                 }
+                
+                // Update Send Modal State
+                updateSendModalUI();
+                updateSwapUI();
                 
                 // History
                 const histContainer = document.getElementById('historyContainer');
                 if (histContainer) {
                     histContainer.innerHTML = '';
-                    walletState.history.slice().reverse().forEach(h => {
-                        const isSent = h.type === 'Sent';
+                    walletState.history.slice().reverse().forEach((h, i) => {
+                        const originalIdx = walletState.history.length - 1 - i;
+                        const isSent = h.type === 'Sent' || h.type === 'Swap';
+                        const asset = walletState.assets.find(a => a.sym === h.sym) || { icon: 'fas fa-coins', color: '#94A3B8' };
+                        
                         histContainer.innerHTML += `
-                            <div class="flex items-center justify-between py-1">
+                            <div class="flex items-center justify-between py-1 cursor-pointer active:opacity-50 transition-opacity" onclick="showTxDetails(${originalIdx})">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-full glass flex items-center justify-center border border-white/5">
-                                        <i class="fas ${isSent ? 'fa-arrow-up text-red-400' : 'fa-arrow-down text-emerald-400'} text-[10px]"></i>
+                                    <div class="w-10 h-10 rounded-full glass flex items-center justify-center border border-white/5 relative">
+                                        <i class="${asset.icon}" style="color: ${asset.color}; font-size: 10px;"></i>
+                                        <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-slate-900 flex items-center justify-center border border-white/10">
+                                            <i class="fas ${h.type === 'Received' ? 'fa-arrow-down text-emerald-400' : (h.type === 'Swap' ? 'fa-repeat text-amber-400' : 'fa-arrow-up text-red-400')} text-[6px]"></i>
+                                        </div>
                                     </div>
                                     <div>
                                         <p class="text-xs font-bold text-white">${h.type} ${h.sym}</p>
                                         <p class="text-[10px] text-slate-500 font-medium">${h.date} • ${h.net || 'Network'}</p>
                                     </div>
                                 </div>
-                                <p class="text-xs font-black ${isSent ? 'text-white' : 'text-emerald-400'}">${isSent ? '-' : '+'}$${h.amount.toLocaleString()}</p>
+                                <div class="text-right">
+                                    <p class="text-xs font-black ${h.type === 'Received' ? 'text-emerald-400' : 'text-white'}">${h.type === 'Received' ? '+' : '-'}${h.amount.toLocaleString(undefined, {minimumFractionDigits: h.sym === 'USDT' ? 2 : 4})} ${h.sym}</p>
+                                    <p class="text-[8px] text-slate-600 font-bold">$${(h.amount * (walletState.prices[h.sym] || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                                </div>
                             </div>
                         `;
                     });
@@ -565,6 +791,200 @@ WALLET_TEMPLATE = """
             } catch (err) {
                 console.error("UI Update Error:", err);
             }
+        }
+
+        let swapState = { fromIdx: 0, toIdx: 2 }; 
+
+        function updateSwapUI() {
+            const from = walletState.assets[swapState.fromIdx];
+            const to = walletState.assets[swapState.toIdx];
+            
+            document.getElementById('swapFromIcon').innerHTML = `<i class="${from.icon}" style="color: ${from.color}"></i>`;
+            document.getElementById('swapFromSym').innerText = from.sym;
+            document.getElementById('swapFromBal').innerText = `Balance: ${from.balance.toLocaleString(undefined, {maximumFractionDigits: 4})}`;
+            
+            document.getElementById('swapToIcon').innerHTML = `<i class="${to.icon}" style="color: ${to.color}"></i>`;
+            document.getElementById('swapToSym').innerText = to.sym;
+            document.getElementById('swapToBal').innerText = `Balance: ${to.balance.toLocaleString(undefined, {maximumFractionDigits: 4})}`;
+            
+            calculateSwap();
+        }
+
+        function calculateSwap() {
+            const from = walletState.assets[swapState.fromIdx];
+            const to = walletState.assets[swapState.toIdx];
+            const amt = parseFloat(document.getElementById('swapAmount').value) || 0;
+            
+            const res = (amt * (walletState.prices[from.sym] || 0)) / (walletState.prices[to.sym] || 1);
+            document.getElementById('swapResult').innerText = res.toLocaleString(undefined, {maximumFractionDigits: 6});
+            
+            const fee = (amt * 0.003).toLocaleString(undefined, {maximumFractionDigits: 4});
+            document.getElementById('swapFee').innerText = `${fee} ${from.sym}`;
+        }
+
+        function flipSwap() {
+            const tmp = swapState.fromIdx;
+            swapState.fromIdx = swapState.toIdx;
+            swapState.toIdx = tmp;
+            updateSwapUI();
+        }
+
+        function executeSwap() {
+            const from = walletState.assets[swapState.fromIdx];
+            const to = walletState.assets[swapState.toIdx];
+            const amt = parseFloat(document.getElementById('swapAmount').value);
+            
+            if (!amt || amt <= 0) return alert("Enter amount");
+            if (amt > from.balance) return alert("Insufficient balance");
+
+            const btn = document.getElementById('confirmSwapBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> swapping...';
+
+            setTimeout(() => {
+                const resAmt = (amt * walletState.prices[from.sym]) / walletState.prices[to.sym];
+                from.balance -= amt;
+                to.balance += resAmt;
+
+                const hash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
+                walletState.history.push({
+                    type: 'Swap',
+                    sym: from.sym,
+                    amount: amt,
+                    date: 'Just now',
+                    status: 'Confirmed',
+                    net: 'Nexus DEX',
+                    hash: hash,
+                    toSym: to.sym,
+                    toAmount: resAmt
+                });
+
+                updateUI();
+                hideModal('swapModal');
+                
+                document.getElementById('resAmount').innerText = `${amt.toLocaleString()} ${from.sym} → ${resAmt.toLocaleString()} ${to.sym}`;
+                document.getElementById('resFee').innerText = "$0.00 (Gasless)";
+                document.getElementById('resHash').innerText = hash.slice(0, 10) + "..." + hash.slice(-8);
+                document.getElementById('successTitle').innerText = "Swap Successful";
+                document.getElementById('successScreen').classList.remove('hidden');
+
+                btn.disabled = false;
+                btn.innerHTML = 'Swap Now';
+                document.getElementById('swapAmount').value = '';
+            }, 1500);
+        }
+
+        function showTxDetails(idx) {
+            const tx = walletState.history[idx];
+            const asset = walletState.assets.find(a => a.sym === tx.sym) || { icon: 'fas fa-coins', color: '#94A3B8' };
+            
+            document.getElementById('detIcon').style.background = asset.color + '20';
+            document.getElementById('detIcon').style.color = asset.color;
+            document.getElementById('detIcon').innerHTML = `<i class="${tx.type === 'Received' ? 'fas fa-arrow-down' : (tx.type === 'Swap' ? 'fas fa-repeat' : 'fas fa-arrow-up')}"></i>`;
+            
+            document.getElementById('detType').innerText = tx.type + " " + tx.sym;
+            document.getElementById('detDate').innerText = tx.date;
+            document.getElementById('detAmount').innerText = (tx.type === 'Received' ? '+' : '-') + tx.amount.toLocaleString() + " " + tx.sym;
+            document.getElementById('detNet').innerText = tx.net || 'Mainnet';
+            document.getElementById('detFee').innerText = tx.fee ? "$" + tx.fee : "Gasless";
+            document.getElementById('detHash').innerText = tx.hash || '0x' + '0'.repeat(64);
+            
+            showModal('txDetailsModal');
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            alert("Copied!");
+        }
+
+        function openSwapAssetList(side) {
+            // Simplified: just flip for now or rotate
+            if (side === 'from') swapState.fromIdx = (swapState.fromIdx + 1) % walletState.assets.length;
+            else swapState.toIdx = (swapState.toIdx + 1) % walletState.assets.length;
+            if (swapState.fromIdx === swapState.toIdx) swapState.toIdx = (swapState.toIdx + 1) % walletState.assets.length;
+            updateSwapUI();
+        }
+
+        function updateSendModalUI() {
+            const asset = walletState.assets[selectedAssetIdx];
+            document.getElementById('selectedAssetName').innerText = asset.name;
+            document.getElementById('selectedAssetSym').innerText = asset.sym;
+            document.getElementById('selectedAssetIcon').innerHTML = `<i class="${asset.icon}" style="color: ${asset.color}"></i>`;
+            document.getElementById('selectedAssetIcon').style.background = asset.color + '15';
+            document.getElementById('sendBalanceText').innerText = `Available: ${asset.balance.toLocaleString(undefined, {minimumFractionDigits: asset.sym === 'USDT' ? 2 : 4})} ${asset.sym}`;
+            
+            // Network selection based on asset
+            const netGrid = document.getElementById('networkGrid');
+            let networks = [];
+            if (asset.sym === 'USDT') networks = ['ERC-20', 'TRC-20', 'BEP-20'];
+            else if (asset.sym === 'BTC') networks = ['Bitcoin'];
+            else if (asset.sym === 'ETH') networks = ['Ethereum'];
+            else if (asset.sym === 'SOL') networks = ['Solana'];
+            else if (asset.sym === 'BNB') networks = ['BSC'];
+
+            netGrid.innerHTML = '';
+            networks.forEach((net, i) => {
+                const isActive = i === 0;
+                netGrid.innerHTML += `
+                    <button onclick="selectNetwork(this)" class="network-btn py-3 glass rounded-2xl border ${isActive ? 'border-sky-500 bg-sky-500/10' : 'border-transparent'} text-[10px] font-bold">
+                        ${net}
+                    </button>
+                `;
+            });
+
+            // Populate Dropdown
+            const dropdown = document.getElementById('assetDropdown');
+            dropdown.innerHTML = '';
+            walletState.assets.forEach((a, idx) => {
+                dropdown.innerHTML += `
+                    <div onclick="selectAsset(${idx})" class="p-4 hover:bg-white/5 flex items-center justify-between cursor-pointer border-b border-white/5 last:border-0">
+                        <div class="flex items-center gap-3">
+                            <i class="${a.icon}" style="color: ${a.color}"></i>
+                            <div>
+                                <p class="text-sm font-bold">${a.name}</p>
+                                <p class="text-[10px] text-slate-500 uppercase">${a.sym}</p>
+                            </div>
+                        </div>
+                        <p class="text-xs font-bold">${a.balance.toLocaleString(undefined, {maximumFractionDigits: 4})}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleAssetDropdown() {
+            document.getElementById('assetDropdown').classList.toggle('hidden');
+        }
+
+        function selectAsset(idx) {
+            selectedAssetIdx = idx;
+            updateSendModalUI();
+            toggleAssetDropdown();
+        }
+
+        function selectNetwork(btn) {
+            document.querySelectorAll('.network-btn').forEach(b => {
+                b.classList.remove('border-sky-500', 'bg-sky-500/10');
+                b.classList.add('border-transparent');
+            });
+            btn.classList.add('border-sky-500', 'bg-sky-500/10');
+            btn.classList.remove('border-transparent');
+        }
+
+        function openSendWithAsset(sym) {
+            const idx = walletState.assets.findIndex(a => a.sym === sym);
+            if (idx !== -1) {
+                selectedAssetIdx = idx;
+                updateSendModalUI();
+                showModal('sendModal');
+            }
+        }
+
+        function manualRefresh() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('fa-spin');
+            fetchPrices().finally(() => {
+                setTimeout(() => icon.classList.remove('fa-spin'), 1000);
+            });
         }
 
         async function fetchPrices() {
@@ -637,38 +1057,43 @@ WALLET_TEMPLATE = """
         }
 
         function setMax() {
-            document.getElementById('sendAmount').value = walletState.assets[0].balance;
+            document.getElementById('sendAmount').value = walletState.assets[selectedAssetIdx].balance;
         }
 
         function executeSend() {
+            const asset = walletState.assets[selectedAssetIdx];
             const amt = parseFloat(document.getElementById('sendAmount').value);
             const addr = document.getElementById('sendAddr').value;
             if (!amt || !addr) return alert("Fill all fields");
-            if (amt > walletState.assets[0].balance) return alert("Insufficient balance");
+            if (amt > asset.balance) return alert("Insufficient balance");
+
+            const netBtn = document.querySelector('.network-btn.border-sky-500');
+            const network = netBtn ? netBtn.innerText.trim() : 'Unknown';
 
             const btn = document.getElementById('confirmSendBtn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Confirming...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> broadcasting...';
 
             setTimeout(() => {
-                walletState.assets[0].balance -= amt;
-                const fee = (Math.random() * 2 + 0.5).toFixed(2);
+                asset.balance -= amt;
+                const fee = (Math.random() * 1.5 + 0.2).toFixed(2);
                 const hash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random() * 16).toString(16)).join('');
                 
                 walletState.history.push({
                     type: 'Sent',
-                    sym: 'USDT',
+                    sym: asset.sym,
                     amount: amt,
                     date: 'Just now',
                     status: 'Confirmed',
-                    net: document.querySelector('.network-btn.bg-sky-500\\/10').innerText,
+                    net: network,
                     hash: hash,
                     fee: fee
                 });
 
-                document.getElementById('resAmount').innerText = amt.toFixed(2) + " USDT";
+                document.getElementById('resAmount').innerText = amt.toLocaleString(undefined, {minimumFractionDigits: asset.sym === 'USDT' ? 2 : 4}) + " " + asset.sym;
                 document.getElementById('resFee').innerText = "$" + fee;
                 document.getElementById('resHash').innerText = hash.slice(0, 10) + "..." + hash.slice(-8);
+                document.getElementById('successTitle').innerText = "Sent Successfully";
                 
                 updateUI();
                 hideModal('sendModal');
@@ -678,7 +1103,7 @@ WALLET_TEMPLATE = """
                 btn.innerHTML = 'Send Now';
                 document.getElementById('sendAmount').value = '';
                 document.getElementById('sendAddr').value = '';
-            }, 1800);
+            }, 2000);
         }
 
         function hideSuccess() {
@@ -697,6 +1122,9 @@ WALLET_TEMPLATE = """
                 document.getElementById('editAddr').value = walletState.address;
                 document.getElementById('editUsdt').value = walletState.assets[0].balance;
                 document.getElementById('editBtc').value = walletState.assets[1].balance;
+                document.getElementById('editEth').value = walletState.assets[2].balance;
+                document.getElementById('editSol').value = walletState.assets[3].balance;
+                document.getElementById('editBnb').value = walletState.assets[4].balance;
                 devClicks = 0;
             }
         }
@@ -705,6 +1133,9 @@ WALLET_TEMPLATE = """
             walletState.address = document.getElementById('editAddr').value;
             walletState.assets[0].balance = parseFloat(document.getElementById('editUsdt').value);
             walletState.assets[1].balance = parseFloat(document.getElementById('editBtc').value);
+            walletState.assets[2].balance = parseFloat(document.getElementById('editEth').value);
+            walletState.assets[3].balance = parseFloat(document.getElementById('editSol').value);
+            walletState.assets[4].balance = parseFloat(document.getElementById('editBnb').value);
             updateUI();
             alert("Settings updated!");
             document.getElementById('devConsole').classList.add('hidden');
@@ -792,6 +1223,10 @@ def wallet_slash():
 @app.route('/manifest.json')
 def manifest():
     return send_file('manifest.json')
+
+@app.route('/icon.png')
+def icon():
+    return send_file('img_1.png')
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
