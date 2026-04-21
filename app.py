@@ -373,10 +373,10 @@ WALLET_TEMPLATE = """
             </div>
             <div>
                 <label class="text-[10px] text-slate-400 mb-2 block uppercase tracking-widest font-bold">Network</label>
-                <div class="grid grid-cols-3 gap-3">
-                    <button class="py-3 glass rounded-2xl border-sky-500 bg-sky-500/10 text-[10px] font-bold">ERC-20</button>
-                    <button class="py-3 glass rounded-2xl text-[10px] border-transparent font-bold">TRC-20</button>
-                    <button class="py-3 glass rounded-2xl text-[10px] border-transparent font-bold">BEP-20</button>
+                <div id="net-selection" class="grid grid-cols-3 gap-3">
+                    <button onclick="setNetwork('ERC-20')" class="net-btn py-3 glass rounded-2xl border-sky-500 bg-sky-500/10 text-[10px] font-bold transition-all" id="btn-ERC-20">ERC-20</button>
+                    <button onclick="setNetwork('TRC-20')" class="net-btn py-3 glass rounded-2xl text-[10px] border-transparent font-bold transition-all" id="btn-TRC-20">TRC-20</button>
+                    <button onclick="setNetwork('BEP-20')" class="net-btn py-3 glass rounded-2xl text-[10px] border-transparent font-bold transition-all" id="btn-BEP-20">BEP-20</button>
                 </div>
             </div>
             <div>
@@ -454,6 +454,7 @@ WALLET_TEMPLATE = """
     <script>
         let walletState = {
             address: localStorage.getItem('wallet_addr') || "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+            selectedNetwork: 'ERC-20',
             assets: JSON.parse(localStorage.getItem('wallet_assets')) || [
                 { id: 'tether', symbol: 'USDT', name: 'Tether', balance: 3420.00, icon: 'fab fa-ethereum', color: '#26A17B' },
                 { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', balance: 0.1254, icon: 'fab fa-bitcoin', color: '#F7931A' },
@@ -567,14 +568,31 @@ WALLET_TEMPLATE = """
                                 <i class="fas ${item.type === 'received' ? 'fa-arrow-down text-green-500' : 'fa-arrow-up text-red-500'} text-xs"></i>
                             </div>
                             <div>
-                                <p class="text-sm font-medium">${item.type === 'received' ? 'Received' : 'Sent'} ${item.asset}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-sm font-medium">${item.type === 'received' ? 'Received' : 'Sent'} ${item.asset}</p>
+                                    ${item.network ? `<span class="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 font-bold uppercase">${item.network}</span>` : ''}
+                                </div>
                                 <p class="text-[10px] text-slate-500">${item.date}</p>
                             </div>
                         </div>
-                        <p class="text-sm font-bold ${item.type === 'received' ? 'text-green-500' : ''}">${item.type === 'received' ? '+' : '-'}$${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                        <div class="text-right">
+                            <p class="text-sm font-bold ${item.type === 'received' ? 'text-green-500' : ''}">${item.type === 'received' ? '+' : '-'}${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                            <p class="text-[8px] text-slate-500 font-mono">${item.txn ? item.txn.substring(0, 8) + '...' : ''}</p>
+                        </div>
                     </div>
                 `).join('');
             }
+        }
+
+        function setNetwork(net) {
+            walletState.selectedNetwork = net;
+            document.querySelectorAll('.net-btn').forEach(btn => {
+                btn.classList.remove('border-sky-500', 'bg-sky-500/10');
+                btn.classList.add('border-transparent');
+            });
+            const activeBtn = document.getElementById('btn-' + net);
+            activeBtn.classList.remove('border-transparent');
+            activeBtn.classList.add('border-sky-500', 'bg-sky-500/10');
         }
 
         function handleDevClick() {
@@ -644,7 +662,11 @@ WALLET_TEMPLATE = """
             const partialTxn = fullTxn.substring(0, 10) + "..." + fullTxn.substring(fullTxn.length - 8);
             
             // Network fee between $0.50 and $2.50
-            const fee = (Math.random() * 2 + 0.5).toFixed(2);
+            const feeValue = (Math.random() * 2 + 0.5).toFixed(2);
+            const fee = `$${feeValue}`;
+
+            const now = new Date();
+            const dateStr = now.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
             setTimeout(() => {
                 // Update History
@@ -652,7 +674,10 @@ WALLET_TEMPLATE = """
                     type: 'sent',
                     asset: 'USDT',
                     amount: amount,
-                    date: 'Just now',
+                    date: dateStr,
+                    network: walletState.selectedNetwork,
+                    fee: fee,
+                    recipient: recipient,
                     status: 'Completed',
                     txn: fullTxn
                 };
@@ -665,7 +690,7 @@ WALLET_TEMPLATE = """
 
                 // Show Success Screen
                 document.getElementById('successAmount').innerText = `${amount.toLocaleString()} USDT`;
-                document.getElementById('successFee').innerText = `$${fee}`;
+                document.getElementById('successFee').innerText = fee;
                 document.getElementById('successTxn').innerText = partialTxn;
                 
                 document.getElementById('successScreen').classList.remove('hidden');
