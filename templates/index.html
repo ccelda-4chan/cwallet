@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .card { background-color: #1e293b; border: 1px solid #334155; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <nav class="bg-slate-900 border-b border-slate-700 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-400"><i class="fas fa-search-nodes mr-2"></i>OSINT Tool</h1>
+            <div class="space-x-4">
+                <a href="#" class="hover:text-blue-400">Dashboard</a>
+                <a href="#" class="hover:text-blue-400">History</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto mt-10 p-4">
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Email Scan -->
+            <div class="card p-6 rounded-lg shadow-xl">
+                <h2 class="text-xl font-semibold mb-4 text-green-400"><i class="fas fa-envelope mr-2"></i>Email Lookup (Holehe)</h2>
+                <form id="emailForm" class="space-y-4">
+                    <input type="email" name="email" placeholder="enter@email.com" required
+                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+                        Run Email Scan
+                    </button>
+                </form>
+            </div>
+
+            <!-- Username Scan -->
+            <div class="card p-6 rounded-lg shadow-xl">
+                <h2 class="text-xl font-semibold mb-4 text-purple-400"><i class="fas fa-user mr-2"></i>Username Search (Sherlock)</h2>
+                <form id="usernameForm" class="space-y-4">
+                    <input type="text" name="username" placeholder="username" required
+                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition">
+                        Run Username Scan
+                    </button>
+                </form>
+            </div>
+
+            <!-- IP Scan -->
+            <div class="card p-6 rounded-lg shadow-xl md:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 text-red-400"><i class="fas fa-network-wired mr-2"></i>IP Intelligence (Shodan)</h2>
+                <form id="ipForm" class="space-y-4">
+                    <input type="text" name="ip" placeholder="8.8.8.8" required
+                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition">
+                        Run IP Scan
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold mb-6">Recent Scans</h2>
+            <div id="taskList" class="space-y-4">
+                <!-- Tasks will appear here -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const taskList = document.getElementById('taskList');
+        const tasks = new Set();
+
+        function createTaskCard(taskId, type, target) {
+            const div = document.createElement('div');
+            div.id = `task-${taskId}`;
+            div.className = 'card p-4 rounded-lg flex justify-between items-center';
+            div.innerHTML = `
+                <div>
+                    <span class="font-bold uppercase text-xs px-2 py-1 rounded bg-slate-700 mr-2">${type}</span>
+                    <span class="text-slate-300">${target}</span>
+                </div>
+                <div class="flex items-center">
+                    <span id="status-${taskId}" class="text-yellow-500 mr-4">Pending...</span>
+                    <button onclick="viewResults('${taskId}')" id="btn-${taskId}" class="hidden bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-sm">View</button>
+                </div>
+            `;
+            taskList.prepend(div);
+        }
+
+        async function pollTask(taskId) {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/tasks/${taskId}`);
+                const data = await res.json();
+                const statusEl = document.getElementById(`status-${taskId}`);
+                const btnEl = document.getElementById(`btn-${taskId}`);
+
+                if (data.status === 'completed') {
+                    statusEl.innerText = 'Completed';
+                    statusEl.className = 'text-green-500 mr-4';
+                    btnEl.classList.remove('hidden');
+                    clearInterval(interval);
+                } else if (data.status === 'failed') {
+                    statusEl.innerText = 'Failed';
+                    statusEl.className = 'text-red-500 mr-4';
+                    clearInterval(interval);
+                } else {
+                    statusEl.innerText = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                }
+            }, 2000);
+        }
+
+        document.getElementById('emailForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const res = await fetch('/scan/email', { method: 'POST', body: formData });
+            const data = await res.json();
+            createTaskCard(data.task_id, 'Holehe', formData.get('email'));
+            pollTask(data.task_id);
+        };
+
+        document.getElementById('usernameForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const res = await fetch('/scan/username', { method: 'POST', body: formData });
+            const data = await res.json();
+            createTaskCard(data.task_id, 'Sherlock', formData.get('username'));
+            pollTask(data.task_id);
+        };
+
+        document.getElementById('ipForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const res = await fetch('/scan/ip', { method: 'POST', body: formData });
+            const data = await res.json();
+            createTaskCard(data.task_id, 'Shodan', formData.get('ip'));
+            pollTask(data.task_id);
+        };
+
+        function viewResults(taskId) {
+            fetch(`/tasks/${taskId}`).then(res => res.json()).then(data => {
+                alert(JSON.stringify(data.results, null, 2));
+            });
+        }
+    </script>
+</body>
+</html>

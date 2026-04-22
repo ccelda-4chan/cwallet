@@ -1,21 +1,26 @@
-# Nexus Wallet
-A high-fidelity mobile crypto wallet.
+# ONSINTaru
+A high-performance OSINT (Open Source Intelligence) tool platform.
 
 ## Features
-- **Mobile-First Design**: Optimized for iOS and Android with a dark theme and modern UI.
-- **USDT Transactions**: Advanced USDT sending flow with network selection (ERC-20, TRC-20, BEP-20) and QR support.
-- **Asset Management**: Realistic view of multi-chain assets and activity.
-- **PWA Ready**: Can be installed on mobile devices for a native app experience.
-- **Secure Access**: Protected by a 6-digit PIN authentication.
+- **Email Lookup**: Check where an email is registered using `Holehe`.
+- **Username Search**: Find accounts across 300+ sites with `Sherlock`.
+- **IP Intelligence**: Infrastructure and vulnerability mapping via `Shodan`.
+- **Async Execution**: Real-time scan progress using FastAPI background tasks.
+- **Persistent Storage**: Scan history stored in MongoDB via Motor.
+- **Modern UI**: Clean, responsive dashboard built with Tailwind CSS.
 
 ## Setup
-1. Install dependencies: `pip install -r requirements.txt`
-2. Set `APP_PASSWORD` environment variable (default: `090902`).
-3. Run: `python app.py`
+1. Clone the repository to `C:\Users\Sam\Documents\GitHub\ONSINTaru`.
+2. Install dependencies: `pip install -r requirements.txt`.
+3. Set environment variables:
+   - `SHODAN_API_KEY`: Your Shodan API key.
+   - `CENSYS_API_ID`: Your Censys API ID.
+   - `CENSYS_API_SECRET`: Your Censys API secret.
+   - `MONGO_URI`: MongoDB connection string (default: `mongodb://localhost:27017`).
+4. Run: `python main.py`.
 
 ## Deployment
-This app is configured for deployment on Render using a **Dockerfile** to ensure maximum compatibility. 
-Ensure your Render service is connected to the `main` (or `master`) branch.
-
-**Troubleshooting Build Failures:**
-If Render still fails, verify on the Render Dashboard that the **Environment** for your service is set to **Docker** (or that it is reading your `render.yaml`).
+This app is ready for deployment on **Render.com**.
+- It uses the provided `render.yaml` for automatic infrastructure provisioning.
+- The `Dockerfile` ensures a consistent Python 3.10 environment.
+- Environment variables must be set in the Render Dashboard for full functionality.

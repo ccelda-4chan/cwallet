@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set the port (Render provides this via the $PORT env var)
-ENV PORT 5000
+ENV PORT 8000
 
-# Start the application using gunicorn
-CMD gunicorn -b 0.0.0.0:$PORT app:app
+# Start the application using uvicorn
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT
