@@ -5,6 +5,7 @@ A high-performance OSINT (Open Source Intelligence) tool platform.
 - **Email Lookup**: Check where an email is registered using `Holehe`.
 - **Username Search**: Find accounts across 300+ sites with `Sherlock`.
 - **IP Intelligence**: Infrastructure and vulnerability mapping via `Shodan`.
+- **Settings Management**: Enable or disable tools based on API availability or preference.
 - **Async Execution**: Real-time scan progress using FastAPI background tasks.
 - **Persistent Storage**: Scan history stored in MongoDB via Motor.
 - **Modern UI**: Clean, responsive dashboard built with Tailwind CSS.

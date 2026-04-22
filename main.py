@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from holehe import core as holehe_core
 from holehe import modules as holehe_modules
+import httpx
 
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -24,13 +25,37 @@ MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGO_URI)
 db = client.osint_db
 collection = db.scans
+settings_collection = db.settings
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Simple in-memory storage for tasks
+# Simple in-memory storage for tasks and settings
 tasks = {}
+SETTINGS = {
+    "shodan": bool(SHODAN_API_KEY),
+    "censys": bool(CENSYS_API_ID and CENSYS_API_SECRET),
+    "holehe": True,
+    "sherlock": True
+}
+
+async def load_settings():
+    global SETTINGS
+    saved_settings = await settings_collection.find_one({"_id": "global_settings"})
+    if saved_settings:
+        SETTINGS.update(saved_settings.get("config", {}))
+    else:
+        # Save defaults
+        await settings_collection.update_one(
+            {"_id": "global_settings"},
+            {"$set": {"config": SETTINGS}},
+            upsert=True
+        )
+
+@app.on_event("startup")
+async def startup_event():
+    await load_settings()
 
 async def save_scan(task_id: str, data: dict):
     await collection.insert_one({
@@ -60,12 +85,17 @@ async def run_shodan(ip: str, task_id: str):
 async def run_holehe(email: str, task_id: str):
     tasks[task_id]["status"] = "processing"
     out = []
-    modules_list = holehe_core.import_submodules(holehe_modules)
-    for module in modules_list:
-        try:
-            await module.check(email, out)
-        except Exception:
-            pass
+    # In holehe 1.61, import_submodules returns a dict {name: module_object}
+    modules_dict = holehe_core.import_submodules("holehe.modules")
+    
+    async with httpx.AsyncClient() as client:
+        for module in modules_dict.values():
+            try:
+                # 1.61 uses (email, client, out)
+                await module.check(email, client, out)
+            except Exception:
+                pass
+                
     tasks[task_id]["results"] = out
     tasks[task_id]["status"] = "completed"
     await save_scan(task_id, tasks[task_id])
@@ -107,6 +137,8 @@ async def run_sherlock(username: str, task_id: str):
 
 @app.post("/scan/ip")
 async def scan_ip(background_tasks: BackgroundTasks, ip: str = Form(...)):
+    if not SETTINGS.get("shodan"):
+        return JSONResponse({"error": "Shodan is disabled in settings"}, status_code=400)
     task_id = str(uuid.uuid4())
     tasks[task_id] = {"type": "shodan", "target": ip, "status": "pending", "results": None}
     background_tasks.add_task(run_shodan, ip, task_id)
@@ -114,10 +146,27 @@ async def scan_ip(background_tasks: BackgroundTasks, ip: str = Form(...)):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "settings": SETTINGS})
+
+@app.get("/settings")
+async def get_settings():
+    return SETTINGS
+
+@app.post("/settings")
+async def update_settings(new_settings: dict):
+    global SETTINGS
+    SETTINGS.update(new_settings)
+    await settings_collection.update_one(
+        {"_id": "global_settings"},
+        {"$set": {"config": SETTINGS}},
+        upsert=True
+    )
+    return SETTINGS
 
 @app.post("/scan/email")
 async def scan_email(background_tasks: BackgroundTasks, email: str = Form(...)):
+    if not SETTINGS.get("holehe"):
+        return JSONResponse({"error": "Holehe is disabled in settings"}, status_code=400)
     task_id = str(uuid.uuid4())
     tasks[task_id] = {"type": "holehe", "target": email, "status": "pending", "results": None}
     background_tasks.add_task(run_holehe, email, task_id)
@@ -125,6 +174,8 @@ async def scan_email(background_tasks: BackgroundTasks, email: str = Form(...)):
 
 @app.post("/scan/username")
 async def scan_username(background_tasks: BackgroundTasks, username: str = Form(...)):
+    if not SETTINGS.get("sherlock"):
+        return JSONResponse({"error": "Sherlock is disabled in settings"}, status_code=400)
     task_id = str(uuid.uuid4())
     tasks[task_id] = {"type": "sherlock", "target": username, "status": "pending", "results": None}
     background_tasks.add_task(run_sherlock, username, task_id)

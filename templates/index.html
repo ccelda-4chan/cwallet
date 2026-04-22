@@ -18,6 +18,7 @@
             <div class="space-x-4">
                 <a href="#" class="hover:text-blue-400">Dashboard</a>
                 <a href="#" class="hover:text-blue-400">History</a>
+                <button onclick="toggleSettings()" class="hover:text-blue-400"><i class="fas fa-cog"></i></button>
             </div>
         </div>
     </nav>
@@ -25,36 +26,51 @@
     <main class="container mx-auto mt-10 p-4">
         <div class="grid md:grid-cols-2 gap-8">
             <!-- Email Scan -->
-            <div class="card p-6 rounded-lg shadow-xl">
+            <div class="card p-6 rounded-lg shadow-xl" id="card-holehe">
                 <h2 class="text-xl font-semibold mb-4 text-green-400"><i class="fas fa-envelope mr-2"></i>Email Lookup (Holehe)</h2>
+                {% if not settings.holehe %}
+                <div class="text-yellow-500 mb-4 text-sm"><i class="fas fa-exclamation-triangle mr-2"></i>Disabled in settings</div>
+                {% endif %}
                 <form id="emailForm" class="space-y-4">
                     <input type="email" name="email" placeholder="enter@email.com" required
-                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500">
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+                        {% if not settings.holehe %}disabled{% endif %}
+                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500 disabled:opacity-50">
+                    <button type="submit" {% if not settings.holehe %}disabled{% endif %}
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition disabled:opacity-50 disabled:bg-slate-700">
                         Run Email Scan
                     </button>
                 </form>
             </div>
 
             <!-- Username Scan -->
-            <div class="card p-6 rounded-lg shadow-xl">
+            <div class="card p-6 rounded-lg shadow-xl" id="card-sherlock">
                 <h2 class="text-xl font-semibold mb-4 text-purple-400"><i class="fas fa-user mr-2"></i>Username Search (Sherlock)</h2>
+                {% if not settings.sherlock %}
+                <div class="text-yellow-500 mb-4 text-sm"><i class="fas fa-exclamation-triangle mr-2"></i>Disabled in settings</div>
+                {% endif %}
                 <form id="usernameForm" class="space-y-4">
                     <input type="text" name="username" placeholder="username" required
-                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500">
-                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition">
+                        {% if not settings.sherlock %}disabled{% endif %}
+                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500 disabled:opacity-50">
+                    <button type="submit" {% if not settings.sherlock %}disabled{% endif %}
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition disabled:opacity-50 disabled:bg-slate-700">
                         Run Username Scan
                     </button>
                 </form>
             </div>
 
             <!-- IP Scan -->
-            <div class="card p-6 rounded-lg shadow-xl md:col-span-2">
+            <div class="card p-6 rounded-lg shadow-xl md:col-span-2" id="card-shodan">
                 <h2 class="text-xl font-semibold mb-4 text-red-400"><i class="fas fa-network-wired mr-2"></i>IP Intelligence (Shodan)</h2>
+                {% if not settings.shodan %}
+                <div class="text-yellow-500 mb-4 text-sm"><i class="fas fa-exclamation-triangle mr-2"></i>Disabled in settings</div>
+                {% endif %}
                 <form id="ipForm" class="space-y-4">
                     <input type="text" name="ip" placeholder="8.8.8.8" required
-                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500">
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition">
+                        {% if not settings.shodan %}disabled{% endif %}
+                        class="w-full bg-slate-800 border border-slate-600 rounded p-2 focus:outline-none focus:border-blue-500 disabled:opacity-50">
+                    <button type="submit" {% if not settings.shodan %}disabled{% endif %}
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition disabled:opacity-50 disabled:bg-slate-700">
                         Run IP Scan
                     </button>
                 </form>
@@ -68,6 +84,49 @@
             </div>
         </div>
     </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="card w-full max-w-md p-6 rounded-lg">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Tool Settings</h2>
+                <button onclick="toggleSettings()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <div class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-semibold">Holehe (Email)</div>
+                        <div class="text-xs text-slate-400">Enable email registration checks</div>
+                    </div>
+                    <input type="checkbox" id="set-holehe" {% if settings.holehe %}checked{% endif %} class="w-5 h-5">
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-semibold">Sherlock (Username)</div>
+                        <div class="text-xs text-slate-400">Enable social profile searches</div>
+                    </div>
+                    <input type="checkbox" id="set-sherlock" {% if settings.sherlock %}checked{% endif %} class="w-5 h-5">
+                </div>
+                <div class="flex justify-between items-center border-t border-slate-700 pt-4">
+                    <div>
+                        <div class="font-semibold">Shodan (IP)</div>
+                        <div class="text-xs text-slate-400">Requires API Key</div>
+                    </div>
+                    <input type="checkbox" id="set-shodan" {% if settings.shodan %}checked{% endif %} class="w-5 h-5">
+                </div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-semibold">Censys (Hosts)</div>
+                        <div class="text-xs text-slate-400">Requires API ID & Secret</div>
+                    </div>
+                    <input type="checkbox" id="set-censys" {% if settings.censys %}checked{% endif %} class="w-5 h-5">
+                </div>
+                <button onclick="saveSettings()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded mt-4">
+                    Save & Refresh
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const taskList = document.getElementById('taskList');
@@ -143,6 +202,28 @@
             fetch(`/tasks/${taskId}`).then(res => res.json()).then(data => {
                 alert(JSON.stringify(data.results, null, 2));
             });
+        }
+
+        function toggleSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        async function saveSettings() {
+            const config = {
+                holehe: document.getElementById('set-holehe').checked,
+                sherlock: document.getElementById('set-sherlock').checked,
+                shodan: document.getElementById('set-shodan').checked,
+                censys: document.getElementById('set-censys').checked
+            };
+            
+            await fetch('/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            
+            location.reload();
         }
     </script>
 </body>
