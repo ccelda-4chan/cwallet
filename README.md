@@ -23,11 +23,17 @@ A high-performance OSINT (Open Source Intelligence) tool platform.
 ## Deployment
 This app is ready for deployment on **Render.com**.
 
-**Start Command for Render:**
-```bash
-uvicorn main:app --host 0.0.0.0 --port $PORT
-```
+### ⚠️ IMPORTANT: Fix Deployment "Status 127"
+If your deploy fails with `guvicorn: command not found`, it is because of a typo in the Render Dashboard.
+1. Go to your **Render Dashboard**.
+2. Select your **Web Service** (osint-tool).
+3. Go to **Settings**.
+4. Find the **Start Command** field.
+5. Change `guvicorn` to `uvicorn`. It should be:
+   `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. Save and Redeploy.
 
-- It uses the provided `render.yaml` for automatic infrastructure provisioning.
-- The `Dockerfile` ensures a consistent Python 3.10 environment.
-- Environment variables must be set in the Render Dashboard for full functionality.
+### Alternative Deployment (Docker)
+This repo includes a `render.yaml` and `Dockerfile`. For the best experience:
+1. Use the **Blueprints** feature in Render to connect this repository.
+2. It will automatically use Docker, which handles all dependencies and start commands correctly.

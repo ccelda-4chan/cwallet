@@ -42,30 +42,41 @@ SETTINGS = {
 
 async def load_settings():
     global SETTINGS
-    saved_settings = await settings_collection.find_one({"_id": "global_settings"})
-    if saved_settings:
-        SETTINGS.update(saved_settings.get("config", {}))
-    else:
-        # Save defaults
-        await settings_collection.update_one(
-            {"_id": "global_settings"},
-            {"$set": {"config": SETTINGS}},
-            upsert=True
+    try:
+        # Attempt to load from MongoDB with a 5s timeout
+        saved_settings = await asyncio.wait_for(
+            settings_collection.find_one({"_id": "global_settings"}), 
+            timeout=5.0
         )
+        if saved_settings:
+            SETTINGS.update(saved_settings.get("config", {}))
+        else:
+            # Save defaults if not present
+            await settings_collection.update_one(
+                {"_id": "global_settings"},
+                {"$set": {"config": SETTINGS}},
+                upsert=True
+            )
+    except Exception as e:
+        print(f"Warning: MongoDB settings load failed: {e}")
 
 @app.on_event("startup")
 async def startup_event():
     await load_settings()
 
 async def save_scan(task_id: str, data: dict):
-    await collection.insert_one({
-        "task_id": task_id,
-        "type": data["type"],
-        "target": data["target"],
-        "status": data["status"],
-        "results": data.get("results"),
-        "error": data.get("error")
-    })
+    try:
+        await collection.insert_one({
+            "task_id": task_id,
+            "type": data["type"],
+            "target": data["target"],
+            "status": data["status"],
+            "results": data.get("results"),
+            "error": data.get("error"),
+            "timestamp": asyncio.get_event_loop().time()
+        })
+    except Exception as e:
+        print(f"Warning: MongoDB save failed: {e}")
 
 async def run_shodan(ip: str, task_id: str):
     tasks[task_id]["status"] = "processing"
@@ -156,11 +167,14 @@ async def get_settings():
 async def update_settings(new_settings: dict):
     global SETTINGS
     SETTINGS.update(new_settings)
-    await settings_collection.update_one(
-        {"_id": "global_settings"},
-        {"$set": {"config": SETTINGS}},
-        upsert=True
-    )
+    try:
+        await settings_collection.update_one(
+            {"_id": "global_settings"},
+            {"$set": {"config": SETTINGS}},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"Warning: MongoDB settings update failed: {e}")
     return SETTINGS
 
 @app.post("/scan/email")
