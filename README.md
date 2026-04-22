@@ -17,10 +17,16 @@ A high-performance OSINT (Open Source Intelligence) tool platform.
    - `CENSYS_API_ID`: Your Censys API ID.
    - `CENSYS_API_SECRET`: Your Censys API secret.
    - `MONGO_URI`: MongoDB connection string (default: `mongodb://localhost:27017`).
-4. Run: `python main.py`.
+4. Run locally: `python main.py`.
 
 ## Deployment
 This app is ready for deployment on **Render.com**.
+
+**Start Command for Render:**
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
 - It uses the provided `render.yaml` for automatic infrastructure provisioning.
 - The `Dockerfile` ensures a consistent Python 3.10 environment.
 - Environment variables must be set in the Render Dashboard for full functionality.
